@@ -6,9 +6,9 @@
 
 ## How it works
 
-The pool keeps a `cumulative_reward_per_share` index. A deposit of `v` across `S` staked shares advances the index by `v · PRECISION / S`; a stake claims `shares · (index − last_claim_index) / PRECISION`. Neither operation iterates over holders, so cost does not grow with the number of stakers.
+The pool keeps a `cumulative_reward_per_share` index. A deposit of `v` across `S` staked shares advances the index by `⌊(v · PRECISION + carry) / S⌋` and keeps the remainder in `carry`, so deposit rounding never loses value; a registration records its debt as `shares · index` at full precision and a claim pays `⌊(shares · index − debt) / PRECISION⌋`, adding `reward · PRECISION` back to the debt. Neither operation iterates over holders, so cost does not grow with the number of stakers.
 
-Claims advance a stake's index only by the amount its reward actually consumed, so sub-base-unit remainders stay credited and fractional holders recover their full proportional share over time rather than losing it to truncation.
+The accounting is exact: a registration's lifetime payout is precisely `⌊shares · Δindex / PRECISION⌋`, sub-unit credit carries across claims without ever being inflated, and `balance · PRECISION == Σ(shares · index − debt) + carry + forfeited` holds at all times — the pool can never owe more than it holds. The only value that stays behind is under one base unit of residue per registration, forfeited at unregister.
 
 ## Honest addresses
 

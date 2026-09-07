@@ -46,23 +46,32 @@
 /// supply's drift — the designed incentive for being registered — never
 /// below any registered stake's floor.
 ///
-/// ### Precision
+/// ### Exact accounting
 ///
-/// The share token's shape is fixed at issuance by the protocol — exactly
-/// 10¹³ base units, 6 decimals, supply made immutable via
-/// `miso_share::share::initialize` (`make_supply_fixed`) — so
-/// `staked_shares ≤ 10¹³` objectively. A deposit of `value ≥ 1` base units
-/// therefore advances the accumulator by
-/// `value · PRECISION / staked_shares ≥ 10¹⁸ / 10¹³ = 10⁵`: the
-/// truncation-to-zero case that would permanently lock a deposit in the
-/// pool balance is impossible by construction, not by convention.
-/// Sub-base-unit claim residue (the remaining source of locked dust) is
-/// documented on `unregister_stake`.
+/// Every base unit deposited is accounted for, to the last index unit:
+///
+/// - A deposit of `v` across `S` staked shares advances the index by
+///   `⌊(v · PRECISION + carry) / S⌋` and keeps the remainder in `carry`
+///   (in `value · PRECISION` units, independent of `S`), so deposit rounding
+///   never loses value — it is folded into the next deposit. This also means
+///   a share supply larger than `PRECISION` cannot lock deposits: they
+///   accumulate in `carry` until they fold.
+/// - A registration records its debt in `shares · index` units at full
+///   precision and pays `⌊(shares · index − debt) / PRECISION⌋`; the payout is
+///   added back to the debt as `reward · PRECISION`. A registration's lifetime
+///   payout is therefore exactly `⌊shares · Δindex / PRECISION⌋`: sub-unit
+///   credit carries across claims and is never inflated. At most one base
+///   unit of sub-unit residue is forfeited per registration, at unregister.
+///
+/// Consequently `balance · PRECISION == Σ (shares · index − debt) + carry +
+/// forfeited` at all times — the pool can never owe more than it holds — and
+/// `PRECISION` is only a granularity/overflow choice: `shares · index` fits
+/// `u256` for any `u64` share supply and lifetime deposits.
 module royalty_pool::pool;
 
 use hikida::hikida;
 use royalty_pool::stake::{Self, Stake};
-use std::{type_name, u128};
+use std::type_name;
 use sui::accumulator::AccumulatorRoot;
 use sui::balance::{Self, Balance};
 use sui::coin::Coin;
@@ -92,6 +101,10 @@ public struct RoyaltyPool<phantom Share, phantom Currency> has key {
     balance: Balance<Currency>,
     staked_shares: u64,
     cumulative_reward_per_share: u256,
+    /// Deposit remainder not yet folded into the index, in
+    /// `value · PRECISION` units. Smaller than `staked_shares` as of the last
+    /// deposit.
+    carry: u128,
     /// Lifetime sum of every deposited value, in currency base units.
     /// Read-only analytics — never decremented; not used by any on-chain logic.
     cumulative_deposits: u128,
@@ -158,6 +171,7 @@ public fun new<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> 
         balance: balance::zero(),
         staked_shares: 0,
         cumulative_reward_per_share: 0,
+        carry: 0,
         cumulative_deposits: 0,
     };
 
@@ -190,8 +204,12 @@ public fun deposit<Share, Currency>(
     let value = balance.value();
     assert!(value > 0, EInvalidValue);
 
-    let reward_per_share = u128::mul_div(value as u128, PRECISION, self.staked_shares as u128);
-    self.cumulative_reward_per_share = self.cumulative_reward_per_share + (reward_per_share as u256);
+    // value · PRECISION + carry < 2^64 · 10^18 + 2^64: fits u128.
+    let numerator = (value as u128) * PRECISION + self.carry;
+    let staked_shares = self.staked_shares as u128;
+    self.cumulative_reward_per_share =
+        self.cumulative_reward_per_share + ((numerator / staked_shares) as u256);
+    self.carry = numerator % staked_shares;
     self.cumulative_deposits = self.cumulative_deposits + (value as u128);
     self.balance.join(balance);
 
@@ -244,9 +262,9 @@ public fun register_stake<Share, Currency>(
     let pool_id = object::id(self);
     let stake_id = object::id(stake);
     let staked_amount = stake.value();
-    let cumulative = self.cumulative_reward_per_share;
+    let debt = (staked_amount as u256) * self.cumulative_reward_per_share;
 
-    stake.add_registration(currency, stake::new_registration(pool_id, cumulative));
+    stake.add_registration(currency, stake::new_registration(pool_id, debt));
     self.staked_shares = self.staked_shares + staked_amount;
 
     emit(StakeRegisteredEvent<Share, Currency> {
@@ -258,10 +276,9 @@ public fun register_stake<Share, Currency>(
 
 /// Unregister a stake from the pool. All claimable rewards must be drained
 /// first — i.e., a final `claim_rewards` call must yield 0. Sub-base-unit
-/// residue in `last_claim_index` (left by the consumed-index advance when a
-/// reward truncated to 0) does NOT block unregister, since that residue
-/// could never be claimed as a whole base unit anyway. Forfeiting it on
-/// exit is the deliberate semantics.
+/// residue (`shares · index − debt < PRECISION`) does NOT block unregister,
+/// since it could never be claimed as a whole base unit anyway. Forfeiting
+/// it on exit is the deliberate semantics.
 public fun unregister_stake<Share, Currency>(
     self: &mut RoyaltyPool<Share, Currency>,
     stake: &mut Stake<Share>,
@@ -276,9 +293,8 @@ public fun unregister_stake<Share, Currency>(
 
     let registration = stake.get_registration(&currency);
     assert!(stake::registration_pool_id(registration) == pool_id, EPoolIdMismatch);
-    let last_claim_index = stake::registration_last_claim_index(registration);
     assert!(
-        calculate_reward(staked_amount, last_claim_index, cumulative) == 0,
+        calculate_reward(staked_amount, stake::registration_debt(registration), cumulative) == 0,
         ELastClaimIndexMismatch,
     );
 
@@ -292,8 +308,8 @@ public fun unregister_stake<Share, Currency>(
     });
 }
 
-/// Claim accrued rewards for a registered stake. Advances the stake's
-/// `last_claim_index` to the pool's current accumulator.
+/// Claim accrued rewards for a registered stake. Adds the payout to the
+/// registration's debt, so sub-unit credit carries over to the next claim.
 public fun claim_rewards<Share, Currency>(
     self: &mut RoyaltyPool<Share, Currency>,
     stake: &mut Stake<Share>,
@@ -309,15 +325,9 @@ public fun claim_rewards<Share, Currency>(
     let registration = stake.registration_mut(&currency);
     assert!(stake::registration_pool_id(registration) == pool_id, EPoolIdMismatch);
 
-    let last_claim_index = stake::registration_last_claim_index(registration);
-    let reward_amount = calculate_reward(staked_amount, last_claim_index, cumulative);
-
-    // Advance `last_claim_index` only by the index delta the reward consumed,
-    // not by the full `(cumulative - last_claim_index)` delta. This preserves
-    // sub-base-unit credit for fractional holders whose per-claim reward
-    // truncated to 0 — they recover their full proportional share over time.
-    let consumed = u128::mul_div(reward_amount as u128, PRECISION, staked_amount as u128);
-    stake::set_last_claim_index(registration, last_claim_index + (consumed as u256));
+    let reward_amount =
+        calculate_reward(staked_amount, stake::registration_debt(registration), cumulative);
+    stake::add_debt(registration, (reward_amount as u256) * (PRECISION as u256));
 
     emit(RoyaltyClaimedEvent<Share, Currency> {
         pool_id,
@@ -349,7 +359,7 @@ public fun pending_rewards<Share, Currency>(
 
     calculate_reward(
         stake.value(),
-        stake::registration_last_claim_index(registration),
+        stake::registration_debt(registration),
         self.cumulative_reward_per_share,
     )
 }
@@ -366,6 +376,11 @@ public fun cumulative_reward_per_share<Share, Currency>(
     self: &RoyaltyPool<Share, Currency>,
 ): u256 {
     self.cumulative_reward_per_share
+}
+
+/// Deposit remainder awaiting the next deposit, in `value · PRECISION` units.
+public fun carry<Share, Currency>(self: &RoyaltyPool<Share, Currency>): u128 {
+    self.carry
 }
 
 /// Lifetime sum of all deposits, in currency base units. Strictly monotonic.
@@ -395,10 +410,11 @@ public fun assert_derived_from<Share, Currency>(
 
 // === Private Functions ===
 
-fun calculate_reward(staked_amount: u64, last_claim_index: u256, current_index: u256): u64 {
-    let reward_delta = current_index - last_claim_index;
-    let reward = (staked_amount as u256) * reward_delta / (PRECISION as u256);
-    (reward as u64)
+/// `⌊(shares · index − debt) / PRECISION⌋`. The subtraction cannot underflow
+/// (`debt ≤ shares · index` by construction) and the result is bounded by the
+/// pool balance (see the module doc), so the `u64` cast cannot truncate.
+fun calculate_reward(staked_amount: u64, debt: u256, index: u256): u64 {
+    (((staked_amount as u256) * index - debt) / (PRECISION as u256)) as u64
 }
 
 // === Test Functions ===

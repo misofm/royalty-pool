@@ -45,7 +45,12 @@ public struct Stake<phantom Share> has key, store {
 /// with, stored inline on the stake.
 public struct Registration has copy, drop, store {
     pool_id: ID,
-    last_claim_index: u256,
+    /// Reward debt in `shares · index` units: `shares · index` as of
+    /// registration, plus `reward · PRECISION` for every payout since. The
+    /// pending reward is `(shares · index − debt) / PRECISION`, computed by
+    /// `royalty_pool::pool`. Kept at full precision so no rounding is ever
+    /// stored: `debt ≤ shares · index` always holds.
+    debt: u256,
 }
 
 // === Events ===
@@ -127,18 +132,18 @@ public fun registration_pool_id(r: &Registration): ID {
     r.pool_id
 }
 
-public fun registration_last_claim_index(r: &Registration): u256 {
-    r.last_claim_index
+public fun registration_debt(r: &Registration): u256 {
+    r.debt
 }
 
 // === Package Functions ===
 
 /// Construct a fresh `Registration` value. Package-private so only the pool
 /// module can mint registrations (always paired with `add_registration`).
-public(package) fun new_registration(pool_id: ID, last_claim_index: u256): Registration {
+public(package) fun new_registration(pool_id: ID, debt: u256): Registration {
     Registration {
         pool_id,
-        last_claim_index,
+        debt,
     }
 }
 
@@ -170,8 +175,8 @@ public(package) fun registration_mut<Share>(
     self.registrations.get_mut(currency)
 }
 
-public(package) fun set_last_claim_index(r: &mut Registration, idx: u256) {
-    r.last_claim_index = idx;
+public(package) fun add_debt(r: &mut Registration, amount: u256) {
+    r.debt = r.debt + amount;
 }
 
 // === Test Functions ===

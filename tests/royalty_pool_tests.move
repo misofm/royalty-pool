@@ -626,11 +626,14 @@ fun test_fractional_holder_credit_preserved_across_zero_claims() {
 }
 
 #[test]
-/// Regression: a sole-staker (`staked_amount == staked_shares`) with a
-/// non-evenly-divisible deposit drains the full pool over two claims via
-/// the consumed-index advance, then unregisters successfully even though
-/// `last_claim_index < cumulative` by 1 (sub-base-unit accumulator residue).
-fun test_sole_staker_drains_indivisible_deposit_and_unregisters() {
+/// A sole staker (`staked_amount == staked_shares`) with a non-evenly
+/// divisible deposit: the index advances by ⌊2 · 1e18 / 6⌋ and the 2 index
+/// units of remainder stay in `carry`. The stake is owed exactly
+/// ⌊6 · index / 1e18⌋ = 1 base unit (1.999… truncated) — the second unit is
+/// sub-unit residue that no rounding may inflate into a payout. A second
+/// claim yields 0, and unregister succeeds with the residue forfeited; the
+/// leftover base unit remains in the pool, backed by carry + residue.
+fun test_sole_staker_indivisible_deposit_pays_exact_floor() {
     let mut scenario = test_scenario::begin(ALICE);
     let pool_id = create_pool(&mut scenario);
 
@@ -644,17 +647,19 @@ fun test_sole_staker_drains_indivisible_deposit_and_unregisters() {
 
     scenario.next_tx(ALICE);
     let mut pool = take_pool(&scenario, pool_id);
+    assert_eq!(pool.cumulative_reward_per_share(), 333_333_333_333_333_333);
+    assert_eq!(pool.carry(), 2);
     let r1 = pool.claim_rewards(&mut s);
     let r2 = pool.claim_rewards(&mut s);
-    assert!(r1.value() == 1);
-    assert!(r2.value() == 1);
-    assert!(pool.balance().value() == 0);
-    // Accumulator residue: cum = floor(2 * 1e18 / 6) = 333…333; consumed
-    // across two claims = 2 * floor(1e18 / 6) = 333…332. So
-    // last_claim_index < cumulative by 1, but pending_rewards == 0.
-    assert!(pool.pending_rewards(&s) == 0);
+    assert_eq!(r1.value(), 1);
+    assert_eq!(r2.value(), 0);
+    assert_eq!(pool.balance().value(), 1);
+    assert_eq!(pool.pending_rewards(&s), 0);
 
     pool.unregister_stake(&mut s);
+    // Exact accounting: balance · 1e18 == carry + forfeited residue.
+    // residue = 6 · index − debt = 1_999_999_999_999_999_998 − 1e18.
+    assert_eq!((pool.balance().value() as u256) * 1_000_000_000_000_000_000, 2 + 999_999_999_999_999_998);
     test_scenario::return_shared(pool);
 
     balance::destroy_for_testing(stake::destroy(s));
@@ -745,7 +750,7 @@ fun test_view_accessors_track_registration_lifecycle() {
     assert!(s.has_registration(&currency));
     let registration = s.get_registration(&currency);
     assert!(stake::registration_pool_id(registration) == id_a);
-    assert!(stake::registration_last_claim_index(registration) == 0);
+    assert!(stake::registration_debt(registration) == 0);
     test_scenario::return_shared(pool_a);
 
     send_to_pool<TEST_SHARE, TEST_CURRENCY>(&mut scenario, id_a, 1_000);
@@ -761,11 +766,10 @@ fun test_view_accessors_track_registration_lifecycle() {
 
     let reward = pool_a.claim_rewards(&mut s);
     assert!(reward.value() == 1_000);
-    // The claim consumed the full index delta.
+    // The claim consumed the full entitlement: debt == shares · index.
     let registration = s.get_registration(&currency);
     assert!(
-        stake::registration_last_claim_index(registration) ==
-        pool_a.cumulative_reward_per_share(),
+        stake::registration_debt(registration) == 100 * pool_a.cumulative_reward_per_share(),
     );
 
     pool_a.unregister_stake(&mut s);

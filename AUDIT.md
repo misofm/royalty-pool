@@ -215,3 +215,31 @@ Checked and cleared — no finding:
   `type_name::with_defining_ids` stability. Framework rev pinned in
   `Move.lock`: `06734f6`.
 - `hikida` `e88c6fa8` correctness (58 LOC, re-read: thin, correct wrappers).
+
+## Amendment — 2026-09-07 (exact accounting)
+
+- **F7 (Medium — fixed): the consumed-index advance over-credited claimants.**
+  `claim_rewards` advanced `last_claim_index` by `⌊reward·P/s⌋`, which is
+  less than the index the reward actually consumed unless `reward·P` is
+  divisible by `s`; the claimant kept up to `s/P` base units of phantom credit
+  per claim. At the 10¹³ share supply that is ≈10⁻⁵ units per claim, so a
+  near-full-supply staker running ~10⁵ one-unit deposit+claim cycles made the
+  pool one base unit insolvent and other stakes' `claim_rewards` abort in
+  `balance.split` — for `routed_stake`, that blocked `sweep`, hence
+  `unregister` and `unstake`. The "consumed-index advance is exact" claim and
+  the solvency proof above were wrong in that step.
+  **Fix:** registrations now store `debt` in `shares·index` units at full
+  precision (`stake.move`), a claim pays `⌊(shares·index − debt)/P⌋` and adds
+  `reward·P` to the debt, and deposits keep their division remainder in a
+  `carry` field folded into the next deposit (`pool.move`). Lifetime payout
+  per registration is exactly `⌊shares·Δindex/P⌋`; the invariant
+  `balance·P == Σ(shares·index − debt) + carry + forfeited` holds after every
+  operation and is asserted by the randomized property tests in
+  `tests/royalty_pool_accounting_tests.move` (three seeds × 250 operations,
+  plus the whale replay, the sub-unit late registrant, and the `S > P` carry
+  fold). Deposit truncation-to-zero (F5) is no longer reachable for any share
+  supply. Behavioral change: a sole staker with an indivisible deposit is
+  paid the exact floor (1 of 2), not the phantom 2.
+- Reviewed alternatives: `⌈reward·P/s⌉` for the consumed index (flips the
+  drift into a bounded per-claim loss) and a ceil'd settled counter (forfeits
+  up to two units per registration); both rejected for the exact-debt form.
