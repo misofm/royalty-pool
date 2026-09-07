@@ -243,3 +243,11 @@ Checked and cleared — no finding:
 - Reviewed alternatives: `⌈reward·P/s⌉` for the consumed index (flips the
   drift into a bounded per-claim loss) and a ceil'd settled counter (forfeits
   up to two units per registration); both rejected for the exact-debt form.
+- **Localnet verification (2026-09-07, sui 1.78.1):** the funded
+  `sweep_and_deposit` path — unobservable in the unit VM — was exercised on a
+  local network: 4,001 base units `send_funds`'d to a pool's address were
+  folded by a capability-less sender in the next checkpoint
+  (`RoyaltyDepositedEvent.value = 4001`; index advanced to exactly
+  `4001·10¹⁸/4000`, carry 0), and claims paid the exact floors (3,000 to a
+  3,000-share stake, 1,000 via a 1,000-share routed stake; 1 unit of residue
+  left). The pool's address balance read 0 after the fold.
