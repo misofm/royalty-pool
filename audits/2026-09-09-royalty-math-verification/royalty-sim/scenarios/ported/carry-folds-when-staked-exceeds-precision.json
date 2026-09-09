@@ -1,0 +1,29 @@
+{
+  "name": "carry-folds-when-staked-exceeds-precision",
+  "setup": { "pools": [{"id": 0}], "stakes": [{"id": 0, "amount": 18446744073709551615}] },
+  "ops": [
+    {"op": "register", "pool": 0, "stake": 0},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "pending", "pool": 0, "stake": 0, "expect": {"reward": 0}},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "pending", "pool": 0, "stake": 0, "expect": {"reward": 18}},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 18}}
+  ]
+}

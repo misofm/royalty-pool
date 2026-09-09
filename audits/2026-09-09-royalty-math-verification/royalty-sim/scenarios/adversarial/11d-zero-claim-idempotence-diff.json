@@ -1,0 +1,516 @@
+{
+  "name": "11d-zero-claim-idempotence-diff",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      }
+    ],
+    "stakes": [
+      {
+        "id": 0,
+        "amount": 1000
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 12345
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 12345
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    }
+  ]
+}

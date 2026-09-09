@@ -1,0 +1,3 @@
+profile=hugeshares seed=1 runs=125 ops_per_run=2000 failures=0 max_ic4_error=676012693150210122338414411151997696405/22543763840043889137111481640920012142 (<= 30 units)
+  telemetry: ops_applied=250000 aborts=0 max_carry=18446734875425604552 max_index_bits=17 max_amount_index_bits=81 max_forfeited_units=53 max_carry_drift_abs=709056023605251584083790084758033156/3386035015841132551465645416234169 max_staked_shares=18446744073709551615 max_balance=25605
+exit=0 hugeshares seed=1 shard=1

@@ -1,0 +1,22 @@
+{ "name": "f6d-two-routed-stakes-one-child-modelonly",
+  "setup": { "pools": [{"id": 0}, {"id": 1}, {"id": 2}] },
+  "ops": [
+    {"op": "routed_new", "routed": 0, "parent": 0, "amount": 5, "routed_pool": 1},
+    {"op": "routed_new", "routed": 1, "parent": 0, "amount": 5, "routed_pool": 1},
+    {"op": "routed_register", "routed": 0, "stake_pool": 0},
+    {"op": "routed_register", "routed": 1, "stake_pool": 2},
+    {"op": "new_stake", "stake": 10, "amount": 1}, {"op": "register", "pool": 1, "stake": 10},
+    {"op": "new_stake", "stake": 11, "amount": 3}, {"op": "register", "pool": 1, "stake": 11},
+    {"op": "deposit", "pool": 0, "value": 101},
+    {"op": "deposit", "pool": 2, "value": 57},
+    {"op": "routed_sweep", "routed": 0, "stake_pool": 0},
+    {"op": "new_stake", "stake": 12, "amount": 4}, {"op": "register", "pool": 1, "stake": 12},
+    {"op": "routed_sweep", "routed": 1, "stake_pool": 2},
+    {"op": "deposit", "pool": 2, "value": 1},
+    {"op": "routed_sweep", "routed": 1, "stake_pool": 2},
+    {"op": "routed_sweep", "routed": 0, "stake_pool": 0},
+    {"op": "pending", "pool": 1, "stake": 10},
+    {"op": "pending", "pool": 1, "stake": 11},
+    {"op": "pending", "pool": 1, "stake": 12},
+    {"op": "claim", "pool": 1, "stake": 10}, {"op": "claim", "pool": 1, "stake": 11}, {"op": "claim", "pool": 1, "stake": 12}
+  ] }

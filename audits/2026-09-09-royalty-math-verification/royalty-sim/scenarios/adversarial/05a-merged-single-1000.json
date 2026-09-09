@@ -1,0 +1,71 @@
+{
+  "name": "05a-merged-single-1000",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      }
+    ],
+    "stakes": [
+      {
+        "id": 0,
+        "amount": 1000
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 3
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 7
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 10
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 999
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 1023
+      }
+    }
+  ]
+}

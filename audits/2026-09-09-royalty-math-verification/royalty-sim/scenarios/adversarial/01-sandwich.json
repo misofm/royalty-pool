@@ -1,0 +1,58 @@
+{
+  "name": "01-sandwich",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      }
+    ],
+    "stakes": [
+      {
+        "id": 0,
+        "amount": 1000
+      },
+      {
+        "id": 1,
+        "amount": 1000000000
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1000
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1000
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 1000
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1,
+      "expect": {
+        "reward": 999
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{ "name": "f4a-overpayment-carry-inheritance",
+  "setup": { "pools": [{"id": 0}], "stakes": [{"id": 0, "amount": 9000000000000000000}, {"id": 1, "amount": 9400000000000000000}] },
+  "ops": [
+    {"op": "register", "pool": 0, "stake": 0},
+    {"op": "deposit", "pool": 0, "value": 8},
+    {"op": "pending", "pool": 0, "stake": 0, "expect": {"reward": 0}},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "deposit", "pool": 0, "value": 10},
+    {"op": "pending", "pool": 0, "stake": 0, "expect": {"reward": 9}},
+    {"op": "pending", "pool": 0, "stake": 1, "expect": {"reward": 9}},
+    {"op": "claim", "pool": 0, "stake": 1, "expect": {"reward": 9}},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 9}}
+  ] }

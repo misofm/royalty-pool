@@ -1,0 +1,14 @@
+{ "name": "f6a-whale-leaves-carry-to-minnow",
+  "setup": { "pools": [{"id": 0}], "stakes": [{"id": 0, "amount": 18446744073709551614}, {"id": 1, "amount": 1}] },
+  "ops": [
+    {"op": "register", "pool": 0, "stake": 0},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "deposit", "pool": 0, "value": 18},
+    {"op": "pending", "pool": 0, "stake": 0, "expect": {"reward": 0}},
+    {"op": "pending", "pool": 0, "stake": 1, "expect": {"reward": 0}},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 0}},
+    {"op": "unregister", "pool": 0, "stake": 0},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "pending", "pool": 0, "stake": 1, "expect": {"reward": 19}},
+    {"op": "claim", "pool": 0, "stake": 1, "expect": {"reward": 19}}
+  ] }

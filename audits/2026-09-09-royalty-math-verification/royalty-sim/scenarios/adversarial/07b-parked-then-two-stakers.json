@@ -1,0 +1,97 @@
+{
+  "name": "07b-parked-then-two-stakers",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      },
+      {
+        "id": 1
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "routed_new",
+      "routed": 0,
+      "parent": 0,
+      "amount": 1000,
+      "routed_pool": 1
+    },
+    {
+      "op": "routed_register",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "routed_sweep",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 250
+    },
+    {
+      "op": "routed_sweep",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 375
+    },
+    {
+      "op": "routed_sweep",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "new_stake",
+      "stake": 1,
+      "amount": 10
+    },
+    {
+      "op": "register",
+      "pool": 1,
+      "stake": 1
+    },
+    {
+      "op": "new_stake",
+      "stake": 2,
+      "amount": 30
+    },
+    {
+      "op": "register",
+      "pool": 1,
+      "stake": 2
+    },
+    {
+      "op": "sweep_and_deposit",
+      "pool": 1
+    },
+    {
+      "op": "pending",
+      "pool": 1,
+      "stake": 1,
+      "expect": {
+        "reward": 181
+      }
+    },
+    {
+      "op": "pending",
+      "pool": 1,
+      "stake": 2,
+      "expect": {
+        "reward": 543
+      }
+    }
+  ]
+}

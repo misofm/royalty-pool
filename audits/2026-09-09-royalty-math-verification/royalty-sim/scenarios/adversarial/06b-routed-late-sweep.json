@@ -1,0 +1,137 @@
+{
+  "name": "06b-routed-late-sweep",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      },
+      {
+        "id": 1
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "routed_new",
+      "routed": 0,
+      "parent": 0,
+      "amount": 7,
+      "routed_pool": 1
+    },
+    {
+      "op": "routed_register",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "new_stake",
+      "stake": 1,
+      "amount": 993
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "new_stake",
+      "stake": 2,
+      "amount": 1
+    },
+    {
+      "op": "register",
+      "pool": 1,
+      "stake": 2
+    },
+    {
+      "op": "new_stake",
+      "stake": 3,
+      "amount": 2
+    },
+    {
+      "op": "register",
+      "pool": 1,
+      "stake": 3
+    },
+    {
+      "op": "new_stake",
+      "stake": 4,
+      "amount": 4
+    },
+    {
+      "op": "register",
+      "pool": 1,
+      "stake": 4
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 100
+    },
+    {
+      "op": "routed_sweep",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "pending",
+      "pool": 1,
+      "stake": 2
+    },
+    {
+      "op": "pending",
+      "pool": 1,
+      "stake": 3
+    },
+    {
+      "op": "pending",
+      "pool": 1,
+      "stake": 4
+    }
+  ]
+}

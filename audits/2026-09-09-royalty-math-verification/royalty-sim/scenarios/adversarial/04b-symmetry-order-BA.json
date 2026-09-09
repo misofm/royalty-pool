@@ -1,0 +1,122 @@
+{
+  "name": "04b-symmetry-order-BA",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      }
+    ],
+    "stakes": [
+      {
+        "id": 0,
+        "amount": 777
+      },
+      {
+        "id": 1,
+        "amount": 777
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 7
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 13
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1000
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 99999
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "pending",
+      "pool": 0,
+      "stake": 1
+    }
+  ]
+}

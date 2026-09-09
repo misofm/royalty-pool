@@ -1,0 +1,11 @@
+{
+  "name": "two-stakes-proportional-split",
+  "setup": { "pools": [{"id": 0}], "stakes": [{"id": 0, "amount": 100}, {"id": 1, "amount": 300}] },
+  "ops": [
+    {"op": "register", "pool": 0, "stake": 0},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "deposit", "pool": 0, "value": 1000},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 250}},
+    {"op": "claim", "pool": 0, "stake": 1, "expect": {"reward": 750}}
+  ]
+}

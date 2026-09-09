@@ -1,0 +1,17 @@
+{ "name": "f6b-parked-plus-dead-residue",
+  "setup": { "pools": [{"id": 0}, {"id": 1}] },
+  "ops": [
+    {"op": "routed_new", "routed": 0, "parent": 0, "amount": 1, "routed_pool": 1},
+    {"op": "routed_register", "routed": 0, "stake_pool": 0},
+    {"op": "new_stake", "stake": 2, "amount": 3}, {"op": "register", "pool": 1, "stake": 2},
+    {"op": "deposit", "pool": 0, "value": 10}, {"op": "routed_sweep", "routed": 0, "stake_pool": 0},
+    {"op": "pending", "pool": 1, "stake": 2, "expect": {"reward": 9}},
+    {"op": "claim", "pool": 1, "stake": 2, "expect": {"reward": 9}},
+    {"op": "unregister", "pool": 1, "stake": 2},
+    {"op": "deposit", "pool": 0, "value": 7}, {"op": "routed_sweep", "routed": 0, "stake_pool": 0},
+    {"op": "new_stake", "stake": 3, "amount": 2}, {"op": "register", "pool": 1, "stake": 3},
+    {"op": "sweep_and_deposit", "pool": 1},
+    {"op": "pending", "pool": 1, "stake": 3, "expect": {"reward": 7}},
+    {"op": "claim", "pool": 1, "stake": 3, "expect": {"reward": 7}},
+    {"op": "sweep_and_deposit", "pool": 1, "expect": {"abort": 7}}
+  ] }

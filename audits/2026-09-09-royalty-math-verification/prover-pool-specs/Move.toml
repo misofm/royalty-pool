@@ -1,0 +1,9 @@
+[package]
+name = "royalty_pool_specs"
+edition = "2024.beta"
+
+[dependencies]
+royalty_pool = { local = "../../github-root/misofm/royalty-pool" }
+
+[addresses]
+royalty_pool_specs = "0x0"

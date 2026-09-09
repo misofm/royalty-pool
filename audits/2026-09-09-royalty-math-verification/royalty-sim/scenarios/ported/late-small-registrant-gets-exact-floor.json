@@ -1,0 +1,14 @@
+{
+  "name": "late-small-registrant-gets-exact-floor",
+  "setup": { "pools": [{"id": 0}], "stakes": [{"id": 0, "amount": 10}, {"id": 1, "amount": 1}] },
+  "ops": [
+    {"op": "register", "pool": 0, "stake": 0},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "deposit", "pool": 0, "value": 20},
+    {"op": "pending", "pool": 0, "stake": 1, "expect": {"reward": 1}},
+    {"op": "pending", "pool": 0, "stake": 0, "expect": {"reward": 19}},
+    {"op": "claim", "pool": 0, "stake": 1, "expect": {"reward": 1}},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 19}}
+  ]
+}

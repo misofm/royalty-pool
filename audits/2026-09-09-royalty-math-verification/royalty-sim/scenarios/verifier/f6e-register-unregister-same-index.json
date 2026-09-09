@@ -1,0 +1,21 @@
+{ "name": "f6e-register-unregister-same-index",
+  "setup": { "pools": [{"id": 0}], "stakes": [{"id": 0, "amount": 7}, {"id": 1, "amount": 3}] },
+  "ops": [
+    {"op": "register", "pool": 0, "stake": 0},
+    {"op": "deposit", "pool": 0, "value": 10},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "unregister", "pool": 0, "stake": 1},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "unregister", "pool": 0, "stake": 1},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "pending", "pool": 0, "stake": 1, "expect": {"reward": 0}},
+    {"op": "pending", "pool": 0, "stake": 0, "expect": {"reward": 10}},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 10}},
+    {"op": "unregister", "pool": 0, "stake": 0},
+    {"op": "deposit", "pool": 0, "value": 1},
+    {"op": "pending", "pool": 0, "stake": 1, "expect": {"reward": 1}},
+    {"op": "claim", "pool": 0, "stake": 1, "expect": {"reward": 1}},
+    {"op": "unregister", "pool": 0, "stake": 1},
+    {"op": "deposit", "pool": 0, "value": 1, "expect": {"abort": 1}}
+  ] }

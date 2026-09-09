@@ -1,0 +1,60 @@
+{
+  "name": "sweep-and-deposit-recovery",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      },
+      {
+        "id": 1
+      }
+    ],
+    "stakes": [
+      {
+        "id": 1,
+        "amount": 10
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "routed_new",
+      "routed": 0,
+      "parent": 0,
+      "amount": 1000,
+      "routed_pool": 1
+    },
+    {
+      "op": "routed_register",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 500
+    },
+    {
+      "op": "routed_sweep",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "register",
+      "pool": 1,
+      "stake": 1
+    },
+    {
+      "op": "sweep_and_deposit",
+      "pool": 1
+    },
+    {
+      "op": "claim",
+      "pool": 1,
+      "stake": 1,
+      "expect": {
+        "reward": 500
+      }
+    }
+  ]
+}

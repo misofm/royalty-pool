@@ -1,0 +1,7 @@
+{
+  "name": "deposit-no-stakers-aborts",
+  "setup": { "pools": [{"id": 0}], "stakes": [] },
+  "ops": [
+    {"op": "deposit", "pool": 0, "value": 500, "expect": {"abort": 1}}
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "name": "08-release-1bps-dust-boundary-modelonly",
+  "setup": {},
+  "ops": [
+    {
+      "op": "release_new",
+      "release": 1,
+      "splits": [
+        9999,
+        1
+      ]
+    },
+    {
+      "op": "release_fund",
+      "release": 1,
+      "value": 1
+    },
+    {
+      "op": "release_distribute",
+      "release": 1,
+      "expect": {
+        "amounts": [
+          0,
+          0
+        ],
+        "remainder": 1
+      }
+    },
+    {
+      "op": "release_new",
+      "release": 9999,
+      "splits": [
+        9999,
+        1
+      ]
+    },
+    {
+      "op": "release_fund",
+      "release": 9999,
+      "value": 9999
+    },
+    {
+      "op": "release_distribute",
+      "release": 9999,
+      "expect": {
+        "amounts": [
+          9998,
+          0
+        ],
+        "remainder": 1
+      }
+    },
+    {
+      "op": "release_new",
+      "release": 10000,
+      "splits": [
+        9999,
+        1
+      ]
+    },
+    {
+      "op": "release_fund",
+      "release": 10000,
+      "value": 10000
+    },
+    {
+      "op": "release_distribute",
+      "release": 10000,
+      "expect": {
+        "amounts": [
+          9999,
+          1
+        ],
+        "remainder": 0
+      }
+    },
+    {
+      "op": "release_new",
+      "release": 10001,
+      "splits": [
+        9999,
+        1
+      ]
+    },
+    {
+      "op": "release_fund",
+      "release": 10001,
+      "value": 10001
+    },
+    {
+      "op": "release_distribute",
+      "release": 10001,
+      "expect": {
+        "amounts": [
+          9999,
+          1
+        ],
+        "remainder": 1
+      }
+    }
+  ]
+}
