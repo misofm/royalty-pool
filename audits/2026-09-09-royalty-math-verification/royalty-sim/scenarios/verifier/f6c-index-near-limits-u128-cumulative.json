@@ -1,0 +1,17 @@
+{ "name": "f6c-index-near-limits-u128-cumulative",
+  "setup": { "pools": [{"id": 0}], "stakes": [{"id": 0, "amount": 1}, {"id": 1, "amount": 18446744073709551614}] },
+  "ops": [
+    {"op": "register", "pool": 0, "stake": 0},
+    {"op": "deposit", "pool": 0, "value": 18446744073709551615},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 18446744073709551615}},
+    {"op": "deposit", "pool": 0, "value": 18446744073709551615},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 18446744073709551615}},
+    {"op": "deposit", "pool": 0, "value": 18446744073709551615},
+    {"op": "claim", "pool": 0, "stake": 0, "expect": {"reward": 18446744073709551615}},
+    {"op": "register", "pool": 0, "stake": 1},
+    {"op": "deposit", "pool": 0, "value": 1000},
+    {"op": "pending", "pool": 0, "stake": 0},
+    {"op": "pending", "pool": 0, "stake": 1},
+    {"op": "claim", "pool": 0, "stake": 1},
+    {"op": "claim", "pool": 0, "stake": 0}
+  ] }

@@ -1,0 +1,2496 @@
+{
+  "campaign": "misofm royalty math verification (TASKS-OPUS), revised after independent verification (VERIFICATION.md)",
+  "date": "2026-09-09",
+  "driver": "Opus",
+  "verifier": "independent pass, VERIFICATION.md",
+  "verdict": "Math exact and dependable; no defect found in the Move royalty math. 14 findings, all SPEC defects, design properties or tooling defects. One residual gap: the funded address-balance redemption paths are not executed anywhere (need a localnet E2E). See REPORT.md.",
+  "corrections_applied_from_verification": {
+    "V1": "stake-size error bound is false without the fixed-share-set qualifier; 1-share stake over-paid 18 units (verifier/f6a, AGREE on Move)",
+    "V2": "MAX_TRACKS = 255 (release.move:115/230), so all 1024-track figures were unrepresentable; replaced with [9746, 1x254]; R <= 254 on chain",
+    "A1": "accumulator identity (a) was never wired into check_pool - now wired in and everything re-run",
+    "A2": "carry() and cumulative_deposits() were never asserted differentially - now asserted at every Full site (225 sites each)",
+    "prover": "unregister_stake_spec's residue bound is a restated precondition, not a proof of I-B8; claim_rewards_spec assumes I-B1"
+  },
+  "code_changes_upstreamed": [
+    "royalty-sim/src/model/invariants.rs: check_accumulator_identity(pool)? wired into check_pool",
+    "royalty-sim/src/movegen.rs: assert carry() and cumulative_deposits() at every Full site; SITE_BUDGET 30->20, ASSERT_SITE_BUDGET 16->12 to stay under Move's 255-local ceiling"
+  ],
+  "toolchain": {
+    "sui": "sui 1.78.1-722ac4fcf484",
+    "sui_path": "<root>/../bin/sui  (MUST be absolute when passed to --sui)",
+    "royalty_sim_content_sha256": "b92cccd0ff28e87478a5d0ca297553b7ccdafd73b385dbd780f01b38ff82ca9c",
+    "royalty_sim_content_sha256_recipe": "cd royalty-sim && find src scenarios -type f | sort | xargs sha256sum | sha256sum",
+    "prover": "sui-prover v1.5.3; Boogie 3.5.7; .NET 8; Z3 4.15.3 (toolchain/)",
+    "python_oracle": {
+      "file": "oracle/oracle.py",
+      "sha256": "e6fc3abfa3559ad9f87c2c3e31cda339a5cff2a06baf272db8b6ede04fe023b1",
+      "role": "independent third implementation of pool.move; every `expect` value in scenarios/adversarial comes from it"
+    }
+  },
+  "move_revisions": {
+    "royalty-pool": "18c55f623a9a709fea9d999cc995d29fd0266332",
+    "routed-stake": "950daa98c1dc441cabbe2ed7dd772b02ba3d96df",
+    "musicos": "4cb3c926b1f9bb5103f3f7194e4e1e34b6c87840",
+    "musicos-actions": "7e96810f82f9db16cf903dca364bca6614fa0e70",
+    "note": "royalty-sim/move/{royalty-pool,routed-stake}/sources verified byte-identical to these checkouts; no Move package was modified"
+  },
+  "commands": {
+    "gates": "cd royalty-sim && cargo build --release && cargo test --release && cargo clippy --release --all-targets -- -D warnings",
+    "model_run_all": "cd royalty-sim && ./target/release/royalty-sim run scenarios/ported/*.json scenarios/handwritten/*.json scenarios/adversarial/*.json scenarios/fuzzgen/*.json scenarios/verifier/*.json    # 248 passed",
+    "differential": "cd royalty-sim && rm -f move/routed-stake/tests/gen/*.move && ./target/release/royalty-sim diff <batch> --move-root move --sui $SUI    # run in 7 batches, see differential_batches",
+    "fuzz_sample": "./target/release/royalty-sim sample --profile <p> --seed <s> --ops 60 --count 50 --out scenarios/fuzzgen",
+    "prover": "source prover-env.sh && sui-prover -p prover-pool-specs",
+    "fuzz_campaign": "./run-campaign.sh    # xargs -P 30 over fuzz-jobs.txt"
+  },
+  "differential_batches": [
+    "scenarios/ported/*.json scenarios/handwritten/*.json",
+    "ls scenarios/adversarial/*.json | grep -v modelonly",
+    "scenarios/fuzzgen/realistic-*.json",
+    "scenarios/fuzzgen/churn-*.json",
+    "scenarios/fuzzgen/dust-*.json",
+    "scenarios/fuzzgen/hugeshares-*.json",
+    "ls scenarios/verifier/*.json | grep -v modelonly"
+  ],
+  "differential_result": {
+    "AGREE": 239,
+    "DISAGREE": 0,
+    "SKIP": 1,
+    "carry_assertion_sites": 225,
+    "cumulative_deposits_assertion_sites": 225,
+    "note": "re-run after wiring identity (a) and adding the carry/cumulative_deposits assertions"
+  },
+  "hand_written_move_tests": [
+    {
+      "file": "manual-move-tests/manual_1.move",
+      "sha256": "21b6499e747353b4e20f5938729c6b1606cee53c0769a92c6ca222bd88504a2f",
+      "install": "cp into royalty-sim/move/routed-stake/tests/gen/ (diff clears that directory)",
+      "run": "cd royalty-sim/move/routed-stake && $SUI move test royalty_sim_gen_manual",
+      "tests": 2,
+      "verdict": "2 PASS",
+      "author": "Opus",
+      "covers": "adversarial/10-u64-balance-limit: u64 balance ceiling, calculate_reward `as u64` at its exact maximum, overflow abort"
+    },
+    {
+      "file": "manual-move-tests/fable_f14_sweep_derivation.move",
+      "sha256": "84cb1a51fc647e2654e2176f4f22645c2c71fec97f6652740f19433d7bb8c273",
+      "install": "cp into royalty-sim/move/routed-stake/tests/gen/",
+      "run": "cd royalty-sim/move/routed-stake && $SUI move test fable_f14",
+      "tests": 3,
+      "verdict": "3 PASS",
+      "author": "independent verification pass",
+      "covers": "F14: permissionless sweep with a forged parent id; correct parent but foreign destination pool; honest control"
+    },
+    {
+      "file": "manual-move-tests/rrd/tests/fable_stage_a_tests.move",
+      "sha256": "cfed525a12732a6d96040c16a767539ab34a60145018fda1bea216a50f484ffc",
+      "install": "already in place in the manual-move-tests/rrd/ scratch copy of release_revenue_distributor",
+      "run": "cd manual-move-tests/rrd && $SUI move test fable_stage_a",
+      "tests": 10,
+      "verdict": "10 PASS",
+      "author": "independent verification pass",
+      "covers": "Stage A on the real Move VM (closes most of F11a): 1-bps track at T in {1, 9999, 10000, 10001}; 255-track [9746,1x254] at T=10000 and T=u64::MAX (remainder 42); three-way split at u64::MAX; remainder recirculation; two accumulator harness probes"
+    }
+  ],
+  "prover_specs": [
+    {
+      "package": "prover-pool-specs",
+      "verdict": "Verification successful",
+      "runtime_s": 21,
+      "specs": [
+        "pool_specs::deposit_spec",
+        "register_specs::register_stake_spec",
+        "claim_specs::claim_rewards_spec  (ASSUMES I-B1: requires(reward <= balance))",
+        "unregister_specs::unregister_stake_spec  (proves the in-place forfeit shape; its residue<P ensures restates a precondition, it does NOT prove I-B8)"
+      ]
+    }
+  ],
+  "fuzz_campaign": {
+    "jobs_file": "fuzz-jobs.txt",
+    "logs": "fuzz-logs/",
+    "run1_logs": "fuzz-logs-run1/ (identity (a) NOT enforced)",
+    "budgets": {
+      "realistic": {
+        "ops": 2000,
+        "count": 2000
+      },
+      "churn": {
+        "ops": 5000,
+        "count": 500
+      },
+      "dust": {
+        "ops": 5000,
+        "count": 500
+      },
+      "hugeshares": {
+        "ops": 2000,
+        "count": 500
+      },
+      "stress": {
+        "ops": 500,
+        "count": 2000
+      }
+    },
+    "seeds": "1..=8 per profile",
+    "sharding": "each seed's --count split 4 ways via --skip",
+    "seed_derivation": "seed_i = (base_seed + i) * 0x9E3779B97F4A7C15  (wrapping u64)",
+    "per_profile": {
+      "churn": {
+        "ops_per_run": 5000,
+        "runs": 4000,
+        "seeds": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ops_applied": 20000000,
+        "expected_aborts": 0,
+        "violations": 0
+      },
+      "dust": {
+        "ops_per_run": 5000,
+        "runs": 4000,
+        "seeds": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ops_applied": 20000000,
+        "expected_aborts": 0,
+        "violations": 0
+      },
+      "hugeshares": {
+        "ops_per_run": 2000,
+        "runs": 4000,
+        "seeds": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ops_applied": 8000000,
+        "expected_aborts": 0,
+        "violations": 0
+      },
+      "realistic": {
+        "ops_per_run": 2000,
+        "runs": 16000,
+        "seeds": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ops_applied": 32000000,
+        "expected_aborts": 0,
+        "violations": 0
+      },
+      "stress": {
+        "ops_per_run": 500,
+        "runs": 16000,
+        "seeds": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ops_applied": 8000000,
+        "expected_aborts": 1216920,
+        "violations": 0
+      }
+    },
+    "runs": {
+      "run1": {
+        "logs": "fuzz-logs-run1/",
+        "identity_a_enforced": false,
+        "wall_clock_s": 5633,
+        "jobs": "160/160 exit 0",
+        "violations": 0
+      },
+      "run2": {
+        "logs": "fuzz-logs/",
+        "identity_a_enforced": true,
+        "wall_clock_s": 6239,
+        "jobs": "160/160 exit 0",
+        "violations": 0,
+        "note": "same profiles/seeds/budgets/shard offsets as run 1; all 160 shard logs byte-identical on profile= and telemetry= lines, as expected since identity (a) is a pure added assertion"
+      }
+    }
+  },
+  "residual_gap": {
+    "funded_address_balance_paths": "redeem_all_and_distribute and sweep_and_deposit have no executable success path in the Move unit VM (settled snapshot is always 0). Not covered by any scripted test. Exercised once by hand on testnet (Between the Doors: app distribution, recording deposits, four sweeps) in digest 3NwduZ4n6Zw93tjYmdRBWsJHSgxpnQyfSV6drf7bz1mG - a real execution, but NOT a repeatable test and not replayable from this manifest. Needs a localnet/testnet E2E."
+  },
+  "scenarios": [
+    {
+      "file": "royalty-sim/scenarios/ported/carry-folds-when-staked-exceeds-precision.json",
+      "name": "carry-folds-when-staked-exceeds-precision",
+      "sha256": "1041bf70a07e7d4d3d18c41562d76ebde1518b53a426d15936d14dbb2a839e57",
+      "ops": 23,
+      "corpus": "ported",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/ported/late-small-registrant-gets-exact-floor.json",
+      "name": "late-small-registrant-gets-exact-floor",
+      "sha256": "7f03847cf680618447f43a206fd6c45d02ca2c6a53157cba37a231fc74598f9d",
+      "ops": 8,
+      "corpus": "ported",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/ported/two-stakes-proportional-split.json",
+      "name": "two-stakes-proportional-split",
+      "sha256": "025fae425532c214473f046d566303ae8ac70cd1b06e2e1eef9d579643c1da02",
+      "ops": 5,
+      "corpus": "ported",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/ported/whale-claim-cycles-stay-solvent.json",
+      "name": "whale-claim-cycles-stay-solvent",
+      "sha256": "9e8c2226d174a05cf48f7fc7f7b33a7b79c1454a435171eec186ec7d2dd4951f",
+      "ops": 24,
+      "corpus": "ported",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/01-single-staker.json",
+      "name": "01-single-staker",
+      "sha256": "f18f527735b4c0935cee8ea65639f42031daba970e8a8455d8f6c02555d0a9c1",
+      "ops": 3,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/02-two-stakers-unequal.json",
+      "name": "02-two-stakers-unequal",
+      "sha256": "88a17f20a426d44a635737fac196db182c9b5d2ddb90c0074cd55ecd51cdebe3",
+      "ops": 5,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/03-late-joiner.json",
+      "name": "03-late-joiner",
+      "sha256": "2d24982159adb646555f1fac915e5d498fbe7fd5144542c1cbb254dc92055cc7",
+      "ops": 6,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/04-claim-twice.json",
+      "name": "04-claim-twice",
+      "sha256": "ac3456cfaf896c3a2ae60cbf4c5a83a5bd082b6ed7a5245a08e1edd6151545c6",
+      "ops": 4,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/05-unregister-with-pending-aborts.json",
+      "name": "05-unregister-with-pending-aborts",
+      "sha256": "9bf713103a452a9296fb2276aad968f370db475ce03a2fb9b051de20967a9b7f",
+      "ops": 3,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/06-unregister-after-claim.json",
+      "name": "06-unregister-after-claim",
+      "sha256": "812f1468dd8eae7cde39f6fac1feb73b93eaedfe7fbef6d6c3e3c6beba2e6b61",
+      "ops": 4,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/07-deposit-no-stakers-aborts.json",
+      "name": "07-deposit-no-stakers-aborts",
+      "sha256": "50cffdb388c248cef0b66c606845686dd0de8a22067dbb23aabd8921e0fc5e3a",
+      "ops": 1,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/08-deposit-zero-aborts.json",
+      "name": "08-deposit-zero-aborts",
+      "sha256": "6fa85f7c4cefd236f230980c5d9804db5af8004a4cee37aa0a7344b2d539cc11",
+      "ops": 2,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/09-routed-sweep-to-empty-child-parks.json",
+      "name": "09-routed-sweep-to-empty-child-parks",
+      "sha256": "ff03eba19287d0a667102da5cc1c13939d7f3e6699d644a3fe4b20a53815d083",
+      "ops": 4,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/10-sweep-and-deposit-recovery.json",
+      "name": "10-sweep-and-deposit-recovery",
+      "sha256": "dfb1e671618468da919f6377330f59cc02c6b766b94ba30b8d56bb9af92f252b",
+      "ops": 7,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/11-sweep-with-zero-reward.json",
+      "name": "11-sweep-with-zero-reward",
+      "sha256": "22b063dcdaf65fe0aa4e4dcf9860901fcce790e66e6f7eb640c954c48aee0964",
+      "ops": 3,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/handwritten/12-huge-shares-carry-behaviour.json",
+      "name": "12-huge-shares-carry-behaviour",
+      "sha256": "ad9b066b147cac13e3052cd1b73cdeed7d0289bcd97d6d6e78602cbf8fa0cd25",
+      "ops": 21,
+      "corpus": "handwritten",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/01-sandwich.json",
+      "name": "01-sandwich",
+      "sha256": "04cfe2877485b5dcaabfd49900913ebe7bd57378fe85b392011e96792b99f208",
+      "ops": 6,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/02-whale-dilution-zero-increment-modelonly.json",
+      "name": "02-whale-dilution-zero-increment-modelonly",
+      "sha256": "a4f6e7f3f316c33fdf624346980403975a8e96f8e2101bf659f74c1b35106cb0",
+      "ops": 2002,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (above the ~85-op movegen ceiling, or uses ops movegen cannot emit)"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/02d-whale-dilution-diff.json",
+      "name": "02d-whale-dilution-diff",
+      "sha256": "1946573f1f6f2d5f938dc7a7cfeb0445109848305b662dffec19dba856328ddf",
+      "ops": 62,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/03-churn-forfeit-15.json",
+      "name": "03-churn-forfeit-15",
+      "sha256": "fe8976bcf565360d70bdc083faa8984e0bb63edf345c1da452a3026cf4f71639",
+      "ops": 62,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/03b-churn-forfeit-1000-modelonly.json",
+      "name": "03b-churn-forfeit-1000-modelonly",
+      "sha256": "08007cb76fb7cfafa3c032f764486c5a13dd94493b2397be524f250f4ddf210c",
+      "ops": 4002,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (above the ~85-op movegen ceiling, or uses ops movegen cannot emit)"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/04a-symmetry-order-AB.json",
+      "name": "04a-symmetry-order-AB",
+      "sha256": "c3bdd55e4781d8d2f189cfe4f46c69fa4b6d173e8a163bc5bd85a5bd15b931a1",
+      "ops": 20,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/04b-symmetry-order-BA.json",
+      "name": "04b-symmetry-order-BA",
+      "sha256": "54b08f8bf4769912e4b99125bbebd4637c837fe894767ba16ac3813e904e177b",
+      "ops": 20,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/05a-merged-single-1000.json",
+      "name": "05a-merged-single-1000",
+      "sha256": "57d36cbdfeef36f6ba3b387967f04584dfa7be2972db39c011750a8c2757d307",
+      "ops": 10,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/05b-split-two-500.json",
+      "name": "05b-split-two-500",
+      "sha256": "65f5bc904fb5ae9cfbf6bd3a144d5048120ab4b7a397ec560302d3bfd00b9de3",
+      "ops": 12,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/06a-routed-eager-sweep.json",
+      "name": "06a-routed-eager-sweep",
+      "sha256": "714bec500087a0bae653953805f5cfedd0dcfc0a8a7f8bfe1ec2742b645ff6b5",
+      "ops": 33,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/06b-routed-late-sweep.json",
+      "name": "06b-routed-late-sweep",
+      "sha256": "f30877941db971969caf835af8a0ebcb122def0da92f7242414c4f47b8e25b86",
+      "ops": 24,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/07a-parked-then-one-staker.json",
+      "name": "07a-parked-then-one-staker",
+      "sha256": "dbafbda01e98964e6d314686579fa86ca859c012e4139bd007eb3a89a34bd457",
+      "ops": 12,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/07b-parked-then-two-stakers.json",
+      "name": "07b-parked-then-two-stakers",
+      "sha256": "4cb7b0a6f597840cd5c4fadda14932be139f87550e9348bb384b6f5bba6f0496",
+      "ops": 15,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/08-release-1bps-dust-boundary-modelonly.json",
+      "name": "08-release-1bps-dust-boundary-modelonly",
+      "sha256": "e72557900cec35244c04674044f7260b76bdff8c5dac364ba2b4a0fce3935ee5",
+      "ops": 12,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (above the ~85-op movegen ceiling, or uses ops movegen cannot emit)"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/08b-release-1bps-full-sweep-modelonly.json",
+      "name": "08b-release-1bps-full-sweep-modelonly",
+      "sha256": "e5241829e89551ced8e71c527a7d01e164b9aea36dfc02374baa54cd2e9bc834",
+      "ops": 60000,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (above the ~85-op movegen ceiling, or uses ops movegen cannot emit)"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/09-release-255-tracks-modelonly.json",
+      "name": "09-release-255-tracks-modelonly",
+      "sha256": "fd617590df1d2bfb235b3312fcc605cd0ecbdf3ffb5cc6ea1f8389b91908edbd",
+      "ops": 6,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (above the ~85-op movegen ceiling, or uses ops movegen cannot emit)"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/10-u64-balance-limit.json",
+      "name": "10-u64-balance-limit",
+      "sha256": "4ead56cef8f2fe58f852e22809680e49601e818f2183e7ee8b04a73ed489e99b",
+      "ops": 5,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "SKIP (arithmetic abort not expressible as expected_failure; covered by manual-move-tests/manual_1.move, 2 PASS)"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/11-zero-claim-idempotence-modelonly.json",
+      "name": "11-zero-claim-idempotence-modelonly",
+      "sha256": "3bb1558b4023dbc8bcb10b321651b258e2045b6559f90e6e6434b86939b1432e",
+      "ops": 10003,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (above the ~85-op movegen ceiling, or uses ops movegen cannot emit)"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/11d-zero-claim-idempotence-diff.json",
+      "name": "11d-zero-claim-idempotence-diff",
+      "sha256": "007e2158fc79bb8ac6772dfeba31ca4403c5c896760a25cf12a2cde657d8eb8c",
+      "ops": 63,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/12-subunit-residue-dead-balance.json",
+      "name": "12-subunit-residue-dead-balance",
+      "sha256": "b52e420ef4be19ca088713f10efadd8516a1b54674e2acfd8f1ceb2fca2df5e1",
+      "ops": 7,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/13-same-currency-second-pool-aborts.json",
+      "name": "13-same-currency-second-pool-aborts",
+      "sha256": "9d520ed6004255c72b25458300686c2f4f15bf1eae9939cdd383e4b83cb369e5",
+      "ops": 2,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/14-pool-id-mismatch-on-claim.json",
+      "name": "14-pool-id-mismatch-on-claim",
+      "sha256": "af5a1dc7f973be07a1d8031b874438f6f382041e2405c0a42797f669b45259e0",
+      "ops": 8,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/adversarial/15-unstake-restake-preserves-rewards-modelonly.json",
+      "name": "15-unstake-restake-preserves-rewards-modelonly",
+      "sha256": "c118956a79a752d572f484fad706d1cb761dea362aa4873e38c7fc380ecefe35",
+      "ops": 18,
+      "corpus": "adversarial",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (above the ~85-op movegen ceiling, or uses ops movegen cannot emit)"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-000.json",
+      "name": "churn-seed101-000",
+      "sha256": "f03445708739a7d37a72531e92411a4919baf61fcd118ae1dedeb53ff8b1fd14",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-001.json",
+      "name": "churn-seed101-001",
+      "sha256": "2457d171d552b57e42f0c1c0b0d6777e3e339891f5de2eefb1d71b090dd57d8d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-002.json",
+      "name": "churn-seed101-002",
+      "sha256": "20eb6d506c8652339e19f4ac03e12cb2714d66f860703f38f7b238731446d8db",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-003.json",
+      "name": "churn-seed101-003",
+      "sha256": "e2d1a1948d437b6230825895ac62ba2bea0abf25a6891f9d3ed92549e4ad8937",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-004.json",
+      "name": "churn-seed101-004",
+      "sha256": "2eae018e7915c42c081d83c49a0774cef2862fc66aef1328aff098982a29f016",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-005.json",
+      "name": "churn-seed101-005",
+      "sha256": "7090b808ab1e2fd3afe6d4ad82f3b2bf06ce833527a0e1a49ed4ac8c3f8a354e",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-006.json",
+      "name": "churn-seed101-006",
+      "sha256": "6b23b856af5255d0ac89186207e97d5cba5a7ed4c9d917e1eac852303b0a541f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-007.json",
+      "name": "churn-seed101-007",
+      "sha256": "f9e232880c66e8ca7a6f0e8fb3ae11d676a67dd48d2139b92e5cf0df8f146b7a",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-008.json",
+      "name": "churn-seed101-008",
+      "sha256": "3622795eb31f082237d7e1a2850de44f8659759b6cfa1d125d4b0ee3a885a670",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-009.json",
+      "name": "churn-seed101-009",
+      "sha256": "a663f9305be1e825a923d6fad5535562d0b5e264dfaa25280a6eb1875b1c859a",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-010.json",
+      "name": "churn-seed101-010",
+      "sha256": "b2bfef7ba34a1b48946106494b4cdd084851dc06e09e97f5957245c3a7e0cf7a",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-011.json",
+      "name": "churn-seed101-011",
+      "sha256": "41886b129f98c2e3c682b0859601dc598b979358553ddce4b1740726d36e46f4",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-012.json",
+      "name": "churn-seed101-012",
+      "sha256": "dfd34f4acf9e9620a372e71c9d0bc23f73f057847f0d6edd38542729ed149442",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-013.json",
+      "name": "churn-seed101-013",
+      "sha256": "aae8ac8ffcfb100ad59fc380d36baa42988b4a3c24babe32d01d73bd199c828d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-014.json",
+      "name": "churn-seed101-014",
+      "sha256": "fbcf8cbb8f861d51f2209d1b16b57444673c420a2f764dce51df27a7cd129489",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-015.json",
+      "name": "churn-seed101-015",
+      "sha256": "cea386756da1b33e99a18bb12852ee897cee87c1a885ee3da47cbb7c21ef8b3b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-016.json",
+      "name": "churn-seed101-016",
+      "sha256": "97865697b1bcd21c80bc2ce06644e3691b68a4d26580bbb568ef504a58a920fc",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-017.json",
+      "name": "churn-seed101-017",
+      "sha256": "df16b2c84963c87867c10307f6224477035672bb962750896d8317111aec96f3",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-018.json",
+      "name": "churn-seed101-018",
+      "sha256": "7d6d4649b7e9500ef886e0805e6afa1decf6c1e36fa73ea12c1103aeeaec2b27",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-019.json",
+      "name": "churn-seed101-019",
+      "sha256": "737765776dce9037d8140a4412189e48dc75471d3fe237ae824792113f67c6ee",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-020.json",
+      "name": "churn-seed101-020",
+      "sha256": "9c03d777f949bab57a2880176ffbe1e15c1ea82ba97a546267f6ee00669a7012",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-021.json",
+      "name": "churn-seed101-021",
+      "sha256": "20a41561f2b57101cab231caf42b70670e01aa0a6a512eca29e8ed26de5b3496",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-022.json",
+      "name": "churn-seed101-022",
+      "sha256": "886db503051c2c9039bf5b5224d10f0bf891f6b98f088e5b864873c1f9693f8f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-023.json",
+      "name": "churn-seed101-023",
+      "sha256": "cf5f6c5e8edd52175e73cda12c760490136adc66824e80efa074364ca4de93a9",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-024.json",
+      "name": "churn-seed101-024",
+      "sha256": "9e5bf0e684a2c8c8e411a59f5b3df99538535d31b697f79e6fbbb14c5d4bd7af",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-025.json",
+      "name": "churn-seed101-025",
+      "sha256": "d8ff7d27cc7af0dc41fc93e0b84bac3418587cb89e0f7dc0f205d39a7bd19cbc",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-026.json",
+      "name": "churn-seed101-026",
+      "sha256": "86c85a3713851a04b7675ce7fae0082416a841259bf079588a022c0cce63aad7",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-027.json",
+      "name": "churn-seed101-027",
+      "sha256": "429d9beea5ddfea47a62b13c2ba43cde4a0f1740606cbe2a808883e065f6bb48",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-028.json",
+      "name": "churn-seed101-028",
+      "sha256": "585b90b58e20dac472fe29efcea0f8d9f5ecffe109a3bff97875dd92d1cec019",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-029.json",
+      "name": "churn-seed101-029",
+      "sha256": "d80ec2ef04eb5ea5ffa7ed6510c86adfbf1a5c409b15c172ed6f0a10973b5c62",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-030.json",
+      "name": "churn-seed101-030",
+      "sha256": "b692249415e096d240ab47855059faca521131aed5c21db4508697f23ab8c4b7",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-031.json",
+      "name": "churn-seed101-031",
+      "sha256": "8a489915f703911175b509a63cd9820198fff2aae17f556539aa9b52911dee38",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-032.json",
+      "name": "churn-seed101-032",
+      "sha256": "0d5606f9f177c9064d8b701fb3d9fa927926bd4ec17ab33bc77da479e8ea2935",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-033.json",
+      "name": "churn-seed101-033",
+      "sha256": "244f85f5c6f507f6754083515f930fbd95ffd6ea6ce6354220336067578fd760",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-034.json",
+      "name": "churn-seed101-034",
+      "sha256": "a7e41346898f7138df69e79aea9209122ab9969acb3d4d211b4eae79ca3ef2c6",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-035.json",
+      "name": "churn-seed101-035",
+      "sha256": "da2d1a789a1703f2d2bfab09bfeddbc0573def28756c8def4f9334599520b4e7",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-036.json",
+      "name": "churn-seed101-036",
+      "sha256": "1a71e6a89214a5c12e6a5a9dd355d807cee938e70f20c553156dc70c3304e874",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-037.json",
+      "name": "churn-seed101-037",
+      "sha256": "e93985c4115b5b658194854551958bdba975924a85540647022a4476cdf5227f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-038.json",
+      "name": "churn-seed101-038",
+      "sha256": "bb2d91bd1c97f4fdd2704e09c4ed6c8b1e33d381da83c6f6005509a5b73c6bc1",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-039.json",
+      "name": "churn-seed101-039",
+      "sha256": "9ee471637d3be59b83e1a4b76755867ee130ba3d8d8cccf96fb47c88d61a9097",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-040.json",
+      "name": "churn-seed101-040",
+      "sha256": "8f31c71102c9738e2c4a11cdcb48052b3f0d7d58a78eb8257a13cddd49b162a8",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-041.json",
+      "name": "churn-seed101-041",
+      "sha256": "f5e737206d44fe792db280661ef58eefa842a1f8c4d72bf8068e593474407e78",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-042.json",
+      "name": "churn-seed101-042",
+      "sha256": "a10dc084d430b5bba49e67c159210093a9c16dcb8afe2656068f924928efe223",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-043.json",
+      "name": "churn-seed101-043",
+      "sha256": "d77ebb8aaee112dc4b374aeb39b199b32a64a140337b07594ebf4a9e7fbfb36d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-044.json",
+      "name": "churn-seed101-044",
+      "sha256": "fac6d86386466f5ca74870528744751b2fdc12dfc2423248f8caafbd09e2188d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-045.json",
+      "name": "churn-seed101-045",
+      "sha256": "d192b6b88c7e7ea71ee03b2e3a23fb22a1f2be8c37aef0374c1f6dd2dcb7983d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-046.json",
+      "name": "churn-seed101-046",
+      "sha256": "0c1312426cbff200950d55e01a3168c0ef86f0b3d481104c6095cd87d2200cb3",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-047.json",
+      "name": "churn-seed101-047",
+      "sha256": "eeda2d8e6873af63e5fe2fc41694aad9cb8e99822aa1c364dd38ab1657ca48f2",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-048.json",
+      "name": "churn-seed101-048",
+      "sha256": "ac26f637ef7f1cc84aea05a2f8b8a8d8a3c6efdcd3bf0f573b0fce2bf6408ecf",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-049.json",
+      "name": "churn-seed101-049",
+      "sha256": "e221ad08f96f81f4881f59eb21e03e7eb640255480ee1ef70be346b4be732e3f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-000.json",
+      "name": "dust-seed102-000",
+      "sha256": "caa57e4a3437ba5529aea62634f8dc054e9ed225873ffbb89e0b8e70ae5953d4",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-001.json",
+      "name": "dust-seed102-001",
+      "sha256": "bd5ccc7eeff0e84c62890c160e5bab69f9151e1ff903ebbee90caff799a42af1",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-002.json",
+      "name": "dust-seed102-002",
+      "sha256": "8abe90b287f86770e1fe3689be1f12f2445bad2b809242b1f6f2b4c5cb60a314",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-003.json",
+      "name": "dust-seed102-003",
+      "sha256": "b8fca67b99d6b7214b94782754e86d1a6bf7c71017676563d94b72c8925839c5",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-004.json",
+      "name": "dust-seed102-004",
+      "sha256": "dc8927c97fc54439b19b510c3f45119eef93a09f880e3e6eda5082c78ee0d923",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-005.json",
+      "name": "dust-seed102-005",
+      "sha256": "97e55710c8580463933024a195604bd16549343485814a52c121b255fe08fdec",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-006.json",
+      "name": "dust-seed102-006",
+      "sha256": "6844286ef3136d1f84be38745d83d75092663d1943d921066efabb5c6e944ae4",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-007.json",
+      "name": "dust-seed102-007",
+      "sha256": "44ff5c675740db95ace4aca52111b1d8ed9ffd534400852dd4d31c56272b4d75",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-008.json",
+      "name": "dust-seed102-008",
+      "sha256": "658fa243fc106d36ad7a8e1a5be104e69a803ef05e430a525930a17159ebd1b8",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-009.json",
+      "name": "dust-seed102-009",
+      "sha256": "253089e7b7ab06c25fc1e9886277177b74b732df8659c755110c8c2b3ea529c5",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-010.json",
+      "name": "dust-seed102-010",
+      "sha256": "446fa0fcdbf773181754b2ea699846d65d68fefa6f65d109d56442bd3ee5914e",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-011.json",
+      "name": "dust-seed102-011",
+      "sha256": "e9708645476b04c71c01150b3f15969c89442d8fbf1e24abd96f67bb370652ed",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-012.json",
+      "name": "dust-seed102-012",
+      "sha256": "46c25aaaacddf032d311720ffdd61266b78e18547985033c5bc779c45d5b0285",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-013.json",
+      "name": "dust-seed102-013",
+      "sha256": "268ba085b9580ca03d1e9b47165c2de215ea629c8daea58f367f225c5235f153",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-014.json",
+      "name": "dust-seed102-014",
+      "sha256": "99b8bda1e68ae319e8b05398295f399388e37fbc04bd1d550181e376cf59b904",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-015.json",
+      "name": "dust-seed102-015",
+      "sha256": "0dd221ae7113ee3ed2edf5c4350fc92c4f270d1647cad9c320502d040aa48cc4",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-016.json",
+      "name": "dust-seed102-016",
+      "sha256": "008d6b65e0f6da494c672ef224164049f383ab0a7974a0efe4e6cce71d1b0446",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-017.json",
+      "name": "dust-seed102-017",
+      "sha256": "90c5a7426380fa3e730c5f6101288bc6a0072dba0f093602c42173cf6003ff7b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-018.json",
+      "name": "dust-seed102-018",
+      "sha256": "54fb8c2e130d041e07ef37a433a68316dbac51039315261a8d007d72945eb640",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-019.json",
+      "name": "dust-seed102-019",
+      "sha256": "cb41b2b4d22613f5019928f4c0cbd4a5b9f37cd03d3017252251a97fb04117ed",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-020.json",
+      "name": "dust-seed102-020",
+      "sha256": "8666b99f7e8c2eadea0dad697e7bdacdd06287c70a1da232f9b23514c2cb1287",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-021.json",
+      "name": "dust-seed102-021",
+      "sha256": "d7e32c5f75759377ea9056953e70cf3e50766264906ed7efbbbe84cc02fec040",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-022.json",
+      "name": "dust-seed102-022",
+      "sha256": "8fced30d3b3853cf7d971c141a4ccf2d788b1ca7822ce8e6e511da6504acd758",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-023.json",
+      "name": "dust-seed102-023",
+      "sha256": "6d04a18f206b50235ff476d67219b4b8dfd1396818c194fa71a6b04d95ba810c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-024.json",
+      "name": "dust-seed102-024",
+      "sha256": "458da966abaa16fa83f29689ea714a0f3055527d3705d7724ba96a344befc0a1",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-025.json",
+      "name": "dust-seed102-025",
+      "sha256": "48b49c828b6be410ce57d55e3747ed8b46ee3c4272b6cd094ee4db1d94dc570c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-026.json",
+      "name": "dust-seed102-026",
+      "sha256": "59b758537b7cdfec0c7ff85f65b56e51c346b7fad4d762870a7a54fc577863b7",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-027.json",
+      "name": "dust-seed102-027",
+      "sha256": "61ffc1c282971cf54124b596dda4a8954ac6127982c93f70f64149eb08275569",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-028.json",
+      "name": "dust-seed102-028",
+      "sha256": "6f74bc38cd61c43ff1477d06b2a18d2723854a1a4e0bef46eddcc36a9dbc9b0e",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-029.json",
+      "name": "dust-seed102-029",
+      "sha256": "868e7b2c0de1aa3c166005818e468903db8bedc11ffbf2b06d6ce971949813cc",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-030.json",
+      "name": "dust-seed102-030",
+      "sha256": "332ee456a7e7bbaea400f864b79533a79d54300e0e6ad13919975edbd046b8c5",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-031.json",
+      "name": "dust-seed102-031",
+      "sha256": "9e9ca3f58966abbb9d9de59b6cd8a3b3dd23af2d069ba6d0092adefb6ef45404",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-032.json",
+      "name": "dust-seed102-032",
+      "sha256": "d23195556c98ff64c78776d31ed48c3812dd7c4df56d3f36fff4885e39c249e2",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-033.json",
+      "name": "dust-seed102-033",
+      "sha256": "cfd51721c03d0778e5ed7e17de5393ba2ecd0e28b822fe2d1c613fb571565391",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-034.json",
+      "name": "dust-seed102-034",
+      "sha256": "faf84f9958f95644dc25dcffb7764b9e5542a6d3e2520c418e5e4caf3d119665",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-035.json",
+      "name": "dust-seed102-035",
+      "sha256": "a05a0638be1a6d76bc310dc28f2bfa49e63c654df5de21d3328f65853b8d59fb",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-036.json",
+      "name": "dust-seed102-036",
+      "sha256": "c81423bc2ce04c92cfcca4054414c3d047d19f3c36ded4d983614b6a499e6bbe",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-037.json",
+      "name": "dust-seed102-037",
+      "sha256": "5393959d0fa30e75f32616d85559c5ea926434f713ded3c85416c3e6f9f65ba3",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-038.json",
+      "name": "dust-seed102-038",
+      "sha256": "de0012a96b4ea7cb15fd8642d63bb0b904ae707f8026f578e1f734c47d0aa165",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-039.json",
+      "name": "dust-seed102-039",
+      "sha256": "7a9f4b6ca38f232f51e735020ad83292e9fbe396e81fcc6f7a394f3bd9596ce0",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-040.json",
+      "name": "dust-seed102-040",
+      "sha256": "7991c52606596bc606746c4a9eb5ed9d892aaacf7fcc1ed81f12c9f43c86e844",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-041.json",
+      "name": "dust-seed102-041",
+      "sha256": "cddb30940cf762201e3f561602645750bb9c180a16b6a7e666b6779d469593f2",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-042.json",
+      "name": "dust-seed102-042",
+      "sha256": "eb303faed0228f3d3801ccfd21c2d54c58c1e7ba5303e9e3d1e645058a79110e",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-043.json",
+      "name": "dust-seed102-043",
+      "sha256": "5c90ae8e502444119657d1e80c696d9e1f96a65a0a5fe0970eb7245688924c1b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-044.json",
+      "name": "dust-seed102-044",
+      "sha256": "4b945a3ddf9c3fca817535f262a2b54fbee81e1d541b2416a2ff2f45d804257c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-045.json",
+      "name": "dust-seed102-045",
+      "sha256": "af44645c61602773bcbc9a875848ba529ffb1938b0cd5ac774870848cd9d9f2f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-046.json",
+      "name": "dust-seed102-046",
+      "sha256": "5dd4695992b1c7f92625950c1fdea754328fa7d57cb317c50f773bb0a605a2cf",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-047.json",
+      "name": "dust-seed102-047",
+      "sha256": "40b7234bf1793e200cac165766441034e630f91d39d97f2ecc8993d6334cb340",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-048.json",
+      "name": "dust-seed102-048",
+      "sha256": "86736bea5bcdba9c457e6ffcd3b20bb74fd92ee86a17ea849fbfa19ac9aa692f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-049.json",
+      "name": "dust-seed102-049",
+      "sha256": "367ddacc57015f20f7b3d7645e69f519f8a699a1bd8cc455a17db9e45b8b9acc",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-000.json",
+      "name": "hugeshares-seed103-000",
+      "sha256": "9df6257ae990f5c4b261301bc5f2a08592c2f0e25e232b789c3fd5f250fb2d28",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-001.json",
+      "name": "hugeshares-seed103-001",
+      "sha256": "9b2b7fcfbc3dbc40833d7b07a903f50f1af0181610bdfe4b98dde4b8252310ba",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-002.json",
+      "name": "hugeshares-seed103-002",
+      "sha256": "93eaa6ce31687fb179723f54fb1fd0c5c5819cdb3f0b91170cef42f54bcf82bc",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-003.json",
+      "name": "hugeshares-seed103-003",
+      "sha256": "40abf2e4750858b8c656b047b1810e7848bbc3a6781688af1c79977473d161d8",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-004.json",
+      "name": "hugeshares-seed103-004",
+      "sha256": "b1f6ada9871188518d9ce783e886f3d307d1feaef7f77377350de3c758043080",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-005.json",
+      "name": "hugeshares-seed103-005",
+      "sha256": "11b2e1d3fa8238f48b3d44cad8ae99b37995f577300914f62ed744379ed58c4b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-006.json",
+      "name": "hugeshares-seed103-006",
+      "sha256": "dcd1e88a55d07e28e72a6265aa5650a4ac17c1f551222efe10704e5abbdd0a8c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-007.json",
+      "name": "hugeshares-seed103-007",
+      "sha256": "a3c056fb7703669662e78a52a77e232920afb5c409e64b6c4cae398e26899009",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-008.json",
+      "name": "hugeshares-seed103-008",
+      "sha256": "a696df28ae83f17fa1cb216bf29abc6b6ccc261a727579609c29fa43f7f86026",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-009.json",
+      "name": "hugeshares-seed103-009",
+      "sha256": "18c126b87c44288016a414bcdf951e2ee45a5889c8c988b14f9753be36f7a6f4",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-010.json",
+      "name": "hugeshares-seed103-010",
+      "sha256": "ff485a62c25237cf3bcac4dec28d0f50b25e8b7d5b5c04039cb341e183b367a2",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-011.json",
+      "name": "hugeshares-seed103-011",
+      "sha256": "33ca765158ad1572920d7abc9813cd658d0838650fe984712a8ad7787219db3c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-012.json",
+      "name": "hugeshares-seed103-012",
+      "sha256": "da4ac27d2425ccea70a6762ba6c972b72d8c3520d5b449ead9fd1b5ba66448a5",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-013.json",
+      "name": "hugeshares-seed103-013",
+      "sha256": "b8057d796de7cf3e87d03de8bd8bd5bf14c82115423d26d3970a44bc9f8f5bbe",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-014.json",
+      "name": "hugeshares-seed103-014",
+      "sha256": "044c531bc2af83b4518d18901d9384d594fb516aa43c0b59ede4b6b4a93c1133",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-015.json",
+      "name": "hugeshares-seed103-015",
+      "sha256": "a2fb23876b8684b3390946f471eefd2ef925625453654ddbe94fdcd69c8959b0",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-016.json",
+      "name": "hugeshares-seed103-016",
+      "sha256": "64b7e66b5d61ed07b54a33967ac33aa4cf5d49d65c2a39422a7c688b27356bfb",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-017.json",
+      "name": "hugeshares-seed103-017",
+      "sha256": "19b70679572a52ca4aa892b0cd10a2c3e1052d38c8ed6544639c4da26bcb93c8",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-018.json",
+      "name": "hugeshares-seed103-018",
+      "sha256": "e44134afd0ff2811d7629215ab4dd5859972104999d07da1ac40812f6853894b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-019.json",
+      "name": "hugeshares-seed103-019",
+      "sha256": "8827ea0767ca0ad1520381e723a06f0a0a4109bee1f68c0a75b6f6cb0d23ced5",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-020.json",
+      "name": "hugeshares-seed103-020",
+      "sha256": "e5ee5ba93e6d1f7bb21de0cd29214f639dc6d55844be131259265fd7c981a999",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-021.json",
+      "name": "hugeshares-seed103-021",
+      "sha256": "ff6ee355bc98781e3c50b723cebcbb9643c9bc92eacb2cafb8140b25327969ae",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-022.json",
+      "name": "hugeshares-seed103-022",
+      "sha256": "e5901922522e7e094150b2638da0565d87ecd73e43cf748834f5422572d89b44",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-023.json",
+      "name": "hugeshares-seed103-023",
+      "sha256": "d61711d3bc4526e64b0a9ac9ecf4412acbcffb5dc329f638c8a8f2d4d26f8962",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-024.json",
+      "name": "hugeshares-seed103-024",
+      "sha256": "015b47a6e8647b75beea628b8f330025292813c9b7ac3fd8aa9fdaed43b81af1",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-025.json",
+      "name": "hugeshares-seed103-025",
+      "sha256": "a14bca0445fd66ce10413c0b1291adba79e20a10068f6b313f9850deefb4988c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-026.json",
+      "name": "hugeshares-seed103-026",
+      "sha256": "4f9ca377798f649a36c89b39892b5f4365ac78b35803aa3c81b7c673ca593dd7",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-027.json",
+      "name": "hugeshares-seed103-027",
+      "sha256": "ef6ad9b9ed1de0b31fadfc182389cf39dffbf1025144315ac4d3c7a7273bf6c5",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-028.json",
+      "name": "hugeshares-seed103-028",
+      "sha256": "20e6b539f3cdae2f58f740791caf5730553142e8d6a396096ba3d86f34ed5102",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-029.json",
+      "name": "hugeshares-seed103-029",
+      "sha256": "de8c6b4407a9433ab45d78b207b8547437bd058b54269b8c83d4d1a3af3d1905",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-030.json",
+      "name": "hugeshares-seed103-030",
+      "sha256": "0a05d5e0fb9601e78e73ef9717c3de51997949c2f277775ead4ec449ee8f9e4b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-031.json",
+      "name": "hugeshares-seed103-031",
+      "sha256": "04627165380ecf8bc00ca35ac93134a9a3b831160fd268f9485d98901720a6dd",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-032.json",
+      "name": "hugeshares-seed103-032",
+      "sha256": "ae874d53c52cf2077d9952d69681ffe4c4c9976b340b522dea8e12a9a1663670",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-033.json",
+      "name": "hugeshares-seed103-033",
+      "sha256": "de37265d6a160943fb89dbae3b70a94646a2922e0cdf38c41de15fb6c0b3163b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-034.json",
+      "name": "hugeshares-seed103-034",
+      "sha256": "a112c755a3e5fa23a3d92f6a3f8467d770d08426ecd71d3cb459dec808809181",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-035.json",
+      "name": "hugeshares-seed103-035",
+      "sha256": "4864572678293c836c0ac042fbcf8b2a552b66073235496abb2fc7c7ed159762",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-036.json",
+      "name": "hugeshares-seed103-036",
+      "sha256": "2d081e151ca01aeded8f62a804e5126fef4a2cdd0abb8b874b4d7bc44ed02111",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-037.json",
+      "name": "hugeshares-seed103-037",
+      "sha256": "3d24ef6141df3cadead473f01a0a38ae7172cff8d5f24bdefab707bf83206f55",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-038.json",
+      "name": "hugeshares-seed103-038",
+      "sha256": "ca7f063f90098f88fa6c1f7fa9ff242e9d8a73baad64f6fcb12fedd92f41e92b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-039.json",
+      "name": "hugeshares-seed103-039",
+      "sha256": "761158127ee3067cf0bb1e6924ebbf7170e68b8fd1424709de1fcc4c74c52eee",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-040.json",
+      "name": "hugeshares-seed103-040",
+      "sha256": "5f0066a71f881562ca73b5fbdda977af2cb22a08a98c6741d01f7baee685b94a",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-041.json",
+      "name": "hugeshares-seed103-041",
+      "sha256": "c31c0e17a137b93435d67015d18cf0b34764053242e95d62a1a365d058afd4c2",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-042.json",
+      "name": "hugeshares-seed103-042",
+      "sha256": "42f41f6bc033be89563c2aed445d5f8e552a1127ae76d29e4fc8dce09479dff3",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-043.json",
+      "name": "hugeshares-seed103-043",
+      "sha256": "d5a867635b1c506ac8f01fafed56ddeeafe1fc767fb983d6571fa952d3339d17",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-044.json",
+      "name": "hugeshares-seed103-044",
+      "sha256": "47f826fd56a824bb91e8b497eb7819aedb139dc774e077361463fb0ade781bc1",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-045.json",
+      "name": "hugeshares-seed103-045",
+      "sha256": "b0383f8c8f491b70f563e041fff17a5ec0aa5f282e0c0e04f097a109628aa89d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-046.json",
+      "name": "hugeshares-seed103-046",
+      "sha256": "58afa37a386c671f847162c10a0f4575227142f329ec4821c22cf79b7cfddae9",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-047.json",
+      "name": "hugeshares-seed103-047",
+      "sha256": "599c255cbe3c22c861c8e8a7b06482c68924b9897c80c69de753d4a7b4137d20",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-048.json",
+      "name": "hugeshares-seed103-048",
+      "sha256": "06175c625f83f382e281c81426346395f2d6990dfe8083627256cae0ccf1b3c7",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-049.json",
+      "name": "hugeshares-seed103-049",
+      "sha256": "83096fe4bdb10e1ed11862d2c6ef457b83a01d1cd5fbf7eeea3b44f345cf4ff6",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-000.json",
+      "name": "realistic-seed100-000",
+      "sha256": "7875fe17d4a00b3992c33d1d9065d281c9a1666f98074341dcc37a044ed50186",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-001.json",
+      "name": "realistic-seed100-001",
+      "sha256": "918e1427c4a5d69fc97f6c31e0ae40c66d185beae80f1e5f5658926f27e3974a",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-002.json",
+      "name": "realistic-seed100-002",
+      "sha256": "817353507c370a674fe5d8a0d0b529e807f623bc14038832ea81691e75eee396",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-003.json",
+      "name": "realistic-seed100-003",
+      "sha256": "eb3ff2f0611f9b70f182238307234cd6b6887839c66dd932d4542580fd713c34",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-004.json",
+      "name": "realistic-seed100-004",
+      "sha256": "9e00203167c8a712a45dc4230b17d10bf623c1a93f2319d46966b3ecc43c1b5b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-005.json",
+      "name": "realistic-seed100-005",
+      "sha256": "36c483ec112f4ad2cc7e960e57ed62deb830cc2def036ffd460a12c8b100a507",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-006.json",
+      "name": "realistic-seed100-006",
+      "sha256": "bef09bd21e5bf29372f8ce6ec70971fe07d99dd79bdcb6b922655ffb105fb13a",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-007.json",
+      "name": "realistic-seed100-007",
+      "sha256": "39a84256900cf060a0cdada98d486a1cccdb48b8b277ce463a1855e0dab9b627",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-008.json",
+      "name": "realistic-seed100-008",
+      "sha256": "310ab653e3fed9696d559a7d585e0c1dc44039fc29cfb54c03b869849e7d5433",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-009.json",
+      "name": "realistic-seed100-009",
+      "sha256": "bb1d95eb13f8808e165c97d3cb74ce17166c85acf6d42b5c141285b7af342a8f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-010.json",
+      "name": "realistic-seed100-010",
+      "sha256": "6111f25e6faa9e087666378435a1de5132e843fb9c8fb8f4d1660d153a27bf16",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-011.json",
+      "name": "realistic-seed100-011",
+      "sha256": "3b1a71705f93e8958fbb30db50aa210ee0ab8b7bab1f89011f8e5f3cd5e0b68f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-012.json",
+      "name": "realistic-seed100-012",
+      "sha256": "24c488d49cd029cf4b09cfee9c830b79f6bd8cd7ad7ffe92599ccb743e098882",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-013.json",
+      "name": "realistic-seed100-013",
+      "sha256": "958186635b6b8e1887d229db6dc5a46b4731585b5de45c5e6d0cad1ad3860033",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-014.json",
+      "name": "realistic-seed100-014",
+      "sha256": "f1070cc6d33a836e17435c9186ecfbf7e7ca39cacf5fc9955f4e6828f9aeb63f",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-015.json",
+      "name": "realistic-seed100-015",
+      "sha256": "04fab2011de3042d3c4ea5fc4311095e0de606ffc0aba06808aa9e71c815843b",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-016.json",
+      "name": "realistic-seed100-016",
+      "sha256": "1dd6ae4166b9021db49a5474f34f8b11625dcb1ff8d3b03a81108fba0187b621",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-017.json",
+      "name": "realistic-seed100-017",
+      "sha256": "383ddd50f6291baf21f146f0d86b4ae4170d4d2454122c38e0a59cac1ca3061d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-018.json",
+      "name": "realistic-seed100-018",
+      "sha256": "219a55637844b634224bac92d707637083278094dd74bece265085a2f94a1789",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-019.json",
+      "name": "realistic-seed100-019",
+      "sha256": "16887faaa73d109211300b6491e957cc99e5332d5000a14a129f65e6d9c54a2c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-020.json",
+      "name": "realistic-seed100-020",
+      "sha256": "2935acc2ae5f9f1f56d4d6a044022a68b80fcfe08c69788e3947da52d8287c35",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-021.json",
+      "name": "realistic-seed100-021",
+      "sha256": "164277c7a09b3528a8d8709d22501af83bd2a853a46344b3a5ff78e004e92f83",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-022.json",
+      "name": "realistic-seed100-022",
+      "sha256": "4758db4c1f925b40bcd4a3e591bf38e14337a3a354b7f2b7ac617b4083a82c74",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-023.json",
+      "name": "realistic-seed100-023",
+      "sha256": "83cfac7e27aafe561e1a01b196964266b66d251559f8c85192eb29e4692936ab",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-024.json",
+      "name": "realistic-seed100-024",
+      "sha256": "a8e8d3462861dc0e4aabdfa73473478661db07a607040fe3c824b9f365c71c55",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-025.json",
+      "name": "realistic-seed100-025",
+      "sha256": "0bfc352d38d9d675a60b9a298665affb9f60ad0e7b704cb28745f46626d2d3d2",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-026.json",
+      "name": "realistic-seed100-026",
+      "sha256": "5aa893fc4fc8c75ee30fec9c27bc09cd4a33797576063c212f313b3aa452fc05",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-027.json",
+      "name": "realistic-seed100-027",
+      "sha256": "2611ac526d686f188cf92b32ddbb26e04ba17221ee9c481933de490668bc4945",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-028.json",
+      "name": "realistic-seed100-028",
+      "sha256": "3c13d1d11deaaf3ec2ff1c2f5d53f858a92fe6dee9f5914ac7dce08ed5249909",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-029.json",
+      "name": "realistic-seed100-029",
+      "sha256": "5c2327cba30c5301f066d4d8c7bdd31571496a9817c9d0564a94469c0737f2db",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-030.json",
+      "name": "realistic-seed100-030",
+      "sha256": "2bd63a403214b55780033e51e78eefc8edca9898f856aa44c8ce54848683dafe",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-031.json",
+      "name": "realistic-seed100-031",
+      "sha256": "59da011d4fa88f7558b540ca38b4b80a30f9abee362a76311b6b23e7945a20e6",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-032.json",
+      "name": "realistic-seed100-032",
+      "sha256": "92a7e9b62cfc0e037f2dc5bf4ced0345dd9a64473f392426c21baf198d61c9fb",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-033.json",
+      "name": "realistic-seed100-033",
+      "sha256": "ddb60c05b3f0066bf3a780dde84f2397f29c4b729f718bb20134a94e6ced248a",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-034.json",
+      "name": "realistic-seed100-034",
+      "sha256": "3f073678add97a1fcd896cdf85372b44862cce2ae15a8825a4d152cc220c626d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-035.json",
+      "name": "realistic-seed100-035",
+      "sha256": "b5e015c8a8c277249c6b89b04150352e67522bb43633c7ac7f31d31d4437cca6",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-036.json",
+      "name": "realistic-seed100-036",
+      "sha256": "b7c9308a83dcb5d76a4ad5530aca2ca6a328076f8addcba66e5ba3779b6cd9e3",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-037.json",
+      "name": "realistic-seed100-037",
+      "sha256": "f934515876dd9c312b63e49f769424906fb2fdc4da9bf120fc81df6021e47d00",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-038.json",
+      "name": "realistic-seed100-038",
+      "sha256": "61a8db4f07c60ca52525d1f348551d9cf2cb8c57bade80c0cdd15fda2cbf0e29",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-039.json",
+      "name": "realistic-seed100-039",
+      "sha256": "f397d47cc1172c20136aaac4e259b2d510c56f176a0af2afcd3423caddda99a7",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-040.json",
+      "name": "realistic-seed100-040",
+      "sha256": "de7fbb68902cb21fc2ee3dcdd9eb980f10c9cf0edefc302778bed95169f6cd68",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-041.json",
+      "name": "realistic-seed100-041",
+      "sha256": "69dc8428b3fb5dc18ad7e0b9622304d8da33431baae9cf9883001562ea0639fa",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-042.json",
+      "name": "realistic-seed100-042",
+      "sha256": "4309a2c3b739d3f8f247a0dc62805652fedf76b7db34105d5a4ebfad0a36d43d",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-043.json",
+      "name": "realistic-seed100-043",
+      "sha256": "afc27876c3fab99a03e825c3f3400fefa19b45a3145ac0badda557f8c7694d75",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-044.json",
+      "name": "realistic-seed100-044",
+      "sha256": "6efdb33b8c7497f76ddb4822fb76d44bae7fcec328c4761bdc2082e0f6dc0471",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-045.json",
+      "name": "realistic-seed100-045",
+      "sha256": "e6e706638f3fc4e974cb8f757c44e55bfa77dd747b73cd7f15a4e7ef9bed3709",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-046.json",
+      "name": "realistic-seed100-046",
+      "sha256": "c0328320b9c13e78a84c8d72c00460d9c9d177cc6444ae8809b4489bbffdd38e",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-047.json",
+      "name": "realistic-seed100-047",
+      "sha256": "044beef07b32fe966b1ad92002a49b19195dd7221f7066d3161c5bf25cbbbb86",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-048.json",
+      "name": "realistic-seed100-048",
+      "sha256": "18d85a30924d88c49192d29f8183a1942e2fc9c0fdc1cce7726c204a4c712576",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-049.json",
+      "name": "realistic-seed100-049",
+      "sha256": "b7d65b847b7ae11af9d1422e4968fb9dc7327866c26c513b464c03e67170db1c",
+      "ops": 60,
+      "corpus": "fuzzgen",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f4a-overpayment-carry-inheritance.json",
+      "name": "f4a-overpayment-carry-inheritance",
+      "sha256": "aa96b84f89d8f96e12ee6b8bcdef17920178765e44b73edf1df29a36c929979e",
+      "ops": 10,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f5a-sweep-timing-eager.json",
+      "name": "f5a-sweep-timing-eager",
+      "sha256": "8df68f96d4192604fe0927e7946db1bc69c9d61b6aad196bb9e805408b0f1962",
+      "ops": 17,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f5b-sweep-timing-late.json",
+      "name": "f5b-sweep-timing-late",
+      "sha256": "119e51852d23a2be0fdcdfab7bc45fe811bfd735c793f8a74ca09462477e5d49",
+      "ops": 15,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f6a-whale-leaves-carry-to-minnow.json",
+      "name": "f6a-whale-leaves-carry-to-minnow",
+      "sha256": "3e7c81d61499d0a2d2b81a10d002cdf4d01ab49cb057b166762fc44f4c2abbab",
+      "ops": 10,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f6b-parked-plus-dead-residue.json",
+      "name": "f6b-parked-plus-dead-residue",
+      "sha256": "510cc027f6357c59d259e4c1c25fef1550f1344ca14697292ec2bf48acb46e6c",
+      "ops": 17,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f6c-index-near-limits-u128-cumulative.json",
+      "name": "f6c-index-near-limits-u128-cumulative",
+      "sha256": "51041941e79c3f11d42e1aa1b35898e37eb3bd5d3ba3fddcfb0db02944121b82",
+      "ops": 13,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f6d-two-routed-stakes-one-child-modelonly.json",
+      "name": "f6d-two-routed-stakes-one-child-modelonly",
+      "sha256": "8f1f7aa1cf05fc747a520216d132534652cb43cddea566c409e2514799a567db",
+      "ops": 23,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "MODEL-ONLY (movegen gives each routed_new its own parent+pool)"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f6e-register-unregister-same-index.json",
+      "name": "f6e-register-unregister-same-index",
+      "sha256": "be0626d4d671877ccc12afaf64486b1a1339e07317f8bbaa7d788d2022ec1fd6",
+      "ops": 17,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
+      "file": "royalty-sim/scenarios/verifier/f6f-max-carry-shares-just-above-P.json",
+      "name": "f6f-max-carry-shares-just-above-P",
+      "sha256": "80d471c5a8dcfd21bfddc59bfe11bf5e506d9bc59dd7928cbb9303bd266bb41a",
+      "ops": 12,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    }
+  ],
+  "totals": {
+    "scenarios": 248,
+    "AGREE": 239,
+    "DISAGREE": 0,
+    "model_only": 8,
+    "skipped_covered_by_manual_test": 1,
+    "hand_written_move_tests": 15
+  },
+  "headline": {
+    "fuzz_operations": 88000000,
+    "fuzz_operations_note": "per run; the campaign was run twice (see fuzz_campaign.runs)",
+    "invariant_violations": 0,
+    "differential_AGREE": 239,
+    "differential_DISAGREE": 0,
+    "differential_SKIP": 1,
+    "hand_written_move_tests": 15,
+    "model_scenarios_passing": 248
+  }
+}

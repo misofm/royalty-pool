@@ -1,0 +1,332 @@
+{
+  "name": "03-churn-forfeit-15",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      }
+    ],
+    "stakes": [
+      {
+        "id": 0,
+        "amount": 1000
+      },
+      {
+        "id": 1,
+        "amount": 3
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    }
+  ]
+}

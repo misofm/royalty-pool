@@ -1,0 +1,33 @@
+{
+  "name": "sweep-with-zero-reward",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      },
+      {
+        "id": 1
+      }
+    ],
+    "stakes": []
+  },
+  "ops": [
+    {
+      "op": "routed_new",
+      "routed": 0,
+      "parent": 0,
+      "amount": 1000,
+      "routed_pool": 1
+    },
+    {
+      "op": "routed_register",
+      "routed": 0,
+      "stake_pool": 0
+    },
+    {
+      "op": "routed_sweep",
+      "routed": 0,
+      "stake_pool": 0
+    }
+  ]
+}

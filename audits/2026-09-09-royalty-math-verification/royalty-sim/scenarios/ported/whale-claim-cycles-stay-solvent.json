@@ -1,0 +1,148 @@
+{
+  "name": "whale-claim-cycles-stay-solvent",
+  "setup": {
+    "pools": [
+      {
+        "id": 0
+      }
+    ],
+    "stakes": [
+      {
+        "id": 0,
+        "amount": 9900001000
+      },
+      {
+        "id": 1,
+        "amount": 99999000
+      }
+    ]
+  },
+  "ops": [
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "register",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "deposit",
+      "pool": 0,
+      "value": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 1
+    },
+    {
+      "op": "claim",
+      "pool": 0,
+      "stake": 0,
+      "expect": {
+        "reward": 0
+      }
+    },
+    {
+      "op": "unregister",
+      "pool": 0,
+      "stake": 0
+    }
+  ]
+}

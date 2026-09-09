@@ -1,0 +1,3 @@
+profile=churn seed=7 runs=125 ops_per_run=5000 failures=0 max_ic4_error=1 (<= 1 units)
+  telemetry: ops_applied=625000 aborts=0 max_carry=8503244 max_index_bits=72 max_amount_index_bits=92 max_forfeited_units=236 max_carry_drift_abs=813884 max_staked_shares=8831166 max_balance=10782
+exit=0 churn seed=7 shard=3

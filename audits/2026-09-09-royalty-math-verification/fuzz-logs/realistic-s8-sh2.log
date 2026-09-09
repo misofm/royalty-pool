@@ -1,0 +1,3 @@
+profile=realistic seed=8 runs=500 ops_per_run=2000 failures=0 max_ic4_error=1 (<= 1 units)
+  telemetry: ops_applied=1000000 aborts=0 max_carry=9999615547941 max_index_bits=100 max_amount_index_bits=143 max_forfeited_units=94 max_carry_drift_abs=6225263894629502485/2189193 max_staked_shares=10000000000000 max_balance=32213388602812
+exit=0 realistic seed=8 shard=2

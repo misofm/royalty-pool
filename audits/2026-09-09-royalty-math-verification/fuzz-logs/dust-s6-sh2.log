@@ -1,0 +1,3 @@
+profile=dust seed=6 runs=125 ops_per_run=5000 failures=0 max_ic4_error=1 (<= 1 units)
+  telemetry: ops_applied=625000 aborts=0 max_carry=8768 max_index_bits=74 max_amount_index_bits=83 max_forfeited_units=224 max_carry_drift_abs=258 max_staked_shares=8876 max_balance=188672
+exit=0 dust seed=6 shard=2

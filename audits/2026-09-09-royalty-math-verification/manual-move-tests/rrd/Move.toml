@@ -1,0 +1,10 @@
+[package]
+name = "release_revenue_distributor"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+[dependencies]
+musicos = { git = "https://github.com/misofm/musicos.git", rev = "4cb3c926b1f9bb5103f3f7194e4e1e34b6c87840" }
+hikida = { git = "https://github.com/unconfirmedlabs/hikida.git", rev = "4abe4c1ff482655693698fa6ab8a6e2b58f8c635" }
+vault = { git = "https://github.com/misofm/vault.git", rev = "23ddacdfc6248285ba0333f58d7e99f4bc3a1fa2", modes = ["test"] }
