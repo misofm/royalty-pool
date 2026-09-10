@@ -940,3 +940,89 @@ full `src`/`scenarios` tree. No other `CORPUS.json` field (verdicts, op
 counts, the 88M campaign's own numbers) was touched.
 
 No differential run disagreed; nothing was adjusted to force agreement.
+
+## 2026-09-10 verifier fixes (VERIFY-A F1, F2, and cheap S3s)
+
+An independent verification pass of this PR (`VERIFY-A.md`) found the on-chain
+change sound (no S0/S1) but caught two S2 defects in the *harness*, not the
+Move package, plus several S3 hygiene notes. Both S2s are fixed here.
+
+**F1 — `movegen`'s `Op::Settle` proxy disagreed with the model when funds
+were parked at a pool with `staked_shares == 0`.** The arm branched only on
+`parked_at_address == 0`: a positive parked value always took the `deposit`
+proxy, even when no stake was registered, generating a real
+`p.deposit(balance::create_for_testing(parked))` call that aborts
+`ENoStakedShares` — while both the model (`Pool::settle`, which checks
+`staked_shares == 0` and returns before ever reading `parked_at_address`)
+and the real Move `settle` return 0 and leave the parked value in place.
+Fixed by checking `staked_shares == 0` alongside `parked == 0` in
+`movegen.rs`'s `Op::Settle` arm, so that case takes the genuine-`settle`
+branch (asserting a 0 return and unchanged balance) instead of the proxy.
+Added `scenarios/verifier/a1-settle-parked-no-stakers.json` (the verifier's
+reproducer): `routed_sweep` parks a reward at a pool with no stakers,
+`settle` on it now correctly expects `reward: 0`, a stake then registers,
+and a second `settle` recovers the parked value. `run`: 0 violations.
+`diff`: **AGREE**. `NOTES.md`'s proxy paragraph amended to describe both
+guard conditions and this fix.
+
+**F2 — `CORPUS.json`'s `move_revisions."royalty-pool"` and `residual_gap`
+were stale.** The manifest still pinned `royalty-pool` at `18c55f6` (the
+pre-revision commit) with a note claiming the pinned copy's sources were
+"verified byte-identical to these checkouts; no Move package was modified"
+— no longer true once this PR's commits landed. Updated
+`move_revisions."royalty-pool"` to `538d48b` (the commit that changed
+`sources/pool.move`) and reworded the note to say the copy tracks this
+branch's 2026-09-10 API revision, not the pre-revision checkout.
+`residual_gap.funded_address_balance_paths` still named
+`sweep_and_deposit`; renamed to `settle`.
+
+**S3s addressed:**
+- `move/royalty-pool/README.md` and `AUDIT.md` (the pinned copy) now match
+  the top-level files (previously the pre-revision copies, still describing
+  `receive_and_deposit`/`sweep_and_deposit` as the live API).
+- `src/main.rs`'s `cmd_diff` now clears every `*.move` file out of
+  `move/routed-stake/tests/gen/` at the start of each invocation.
+  `CORPUS.json`'s `hand_written_move_tests[].install` field already
+  documented this ("diff clears that directory"); it wasn't true before —
+  running the seven documented batches back-to-back in one tree
+  accumulated generated modules across batches and the fourth batch onward
+  failed to build (`PACKAGE_ARENA_LIMIT_REACHED`), which the tool then
+  misreported as a `DISAGREE` for every scenario in that batch. Each batch
+  is still its own separate `diff` invocation (a single
+  `scenarios/**/*.json` glob still fails a different way — the model-only
+  scenarios alone exceed `LOCAL_INDEX_MAX`), but no longer needs a manual
+  `rm -f`/`git checkout` cycle between runs within one batch.
+- `README.md`'s `diff` section now states plainly that the full corpus runs
+  as seven separate invocations (not one glob) and why, and that a
+  hand-installed reproducer must be reinstalled after any `diff` run that
+  clears it out.
+
+**CORPUS.json**: added a `post_revision_additions` entry recording the new
+`a1-settle-parked-no-stakers` scenario (249th entry in `scenarios[]`,
+`model_verdict: PASS`, `move_verdict: AGREE`) as a 2026-09-10 addition —
+explicitly *not* part of the original campaign's own 248-scenario
+`totals`/`headline`/`differential_result`, which are left as the historical
+record of that campaign and were not re-run. `royalty_sim_content_sha256`
+recomputed.
+
+### Re-run numbers after the fix
+
+```
+cargo build --release && cargo test --release && cargo clippy --release --all-targets -- -D warnings
+  → build OK; 21 + 1 + 2 = 24 tests pass; clippy clean
+
+diff scenarios/ported/*.json scenarios/handwritten/*.json --move-root move --sui $SUI
+  → 16/16 AGREE (gate 3, unchanged)
+
+diff scenarios/verifier/a1-settle-parked-no-stakers.json --move-root move --sui $SUI
+  → AGREE a1-settle-parked-no-stakers
+
+diff $(ls scenarios/verifier/*.json | grep -v modelonly) --move-root move --sui $SUI
+  → 9/9 AGREE (was 8/8; a1 added), 1 model-only (f6d) still excluded
+```
+
+Full corpus is now 249 scenarios (248 + `a1`). Batch totals: ported+handwritten
+16/16, adversarial 15/0/1 (unchanged), fuzzgen 50/50/50/50 (unchanged),
+verifier 9/9 (was 8/8). New aggregate: **240 AGREE / 0 DISAGREE / 1 SKIP**,
++ 8 model-only = 249. `run` over the full corpus (249 files): 249/249 passed,
+0 violations. No differential run disagreed.

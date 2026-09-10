@@ -152,6 +152,24 @@ fn cmd_gen_move(scenario_path: &std::path::Path, out: &std::path::Path) -> Resul
 fn cmd_diff(paths: &[PathBuf], move_root: &std::path::Path, out: Option<&std::path::Path>, sui: &str) -> Result<()> {
     let gen_dir = move_root.join("routed-stake").join("tests").join("gen");
     std::fs::create_dir_all(&gen_dir)?;
+    // Clear every previously generated (or hand-installed) test out of the
+    // directory before writing this run's batch. Without this, running the
+    // documented batches back-to-back in one tree accumulates modules across
+    // runs -- ~150 of them by the last fuzzgen batch -- and `sui move test`
+    // fails to build with `PACKAGE_ARENA_LIMIT_REACHED`, which this command
+    // then misreports as a `DISAGREE` for every scenario in the batch rather
+    // than the build failure it actually is. `CORPUS.json`'s
+    // `hand_written_move_tests[].install` already documents "diff clears
+    // that directory" for the manual reproducers; this makes that true --
+    // reinstall them (or `gen-move`/copy any hand test back in) after each
+    // `diff` invocation that needs them present.
+    for entry in std::fs::read_dir(&gen_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().map(|e| e == "move").unwrap_or(false) {
+            std::fs::remove_file(&path)?;
+        }
+    }
 
     struct Planned {
         scenario_name: String,

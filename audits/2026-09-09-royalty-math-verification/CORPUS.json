@@ -18,7 +18,7 @@
   "toolchain": {
     "sui": "sui 1.78.1-722ac4fcf484",
     "sui_path": "<root>/../bin/sui  (MUST be absolute when passed to --sui)",
-    "royalty_sim_content_sha256": "f06f8cfee7b9993d55749a4e9f7b92fa44c8422198e0543cc15bbcfbf74002df",
+    "royalty_sim_content_sha256": "7975c49e5b4812cc2fb4ad7d1d2deca66f966a7073d985141a2b3a0ebf798c7d",
     "royalty_sim_content_sha256_recipe": "cd royalty-sim && find src scenarios -type f | sort | xargs sha256sum | sha256sum",
     "prover": "sui-prover v1.5.3; Boogie 3.5.7; .NET 8; Z3 4.15.3 (toolchain/)",
     "python_oracle": {
@@ -28,11 +28,11 @@
     }
   },
   "move_revisions": {
-    "royalty-pool": "18c55f623a9a709fea9d999cc995d29fd0266332",
+    "royalty-pool": "538d48b8901a6d3f8400b86078666f92dea7f3aa",
     "routed-stake": "950daa98c1dc441cabbe2ed7dd772b02ba3d96df",
     "musicos": "4cb3c926b1f9bb5103f3f7194e4e1e34b6c87840",
     "musicos-actions": "7e96810f82f9db16cf903dca364bca6614fa0e70",
-    "note": "royalty-sim/move/{royalty-pool,routed-stake}/sources verified byte-identical to these checkouts; no Move package was modified"
+    "note": "royalty-sim/move/routed-stake/sources verified byte-identical to the routed-stake checkout at the pinned revision; no routed_stake Move package was modified. royalty-sim/move/royalty-pool/sources tracks misofm/royalty-pool's feat/settle-recover-coins branch (settle/recover_coins API revision, 2026-09-10) as of commit 538d48b8901a6d3f8400b86078666f92dea7f3aa, verified byte-identical to that commit's sources/{pool,stake}.move -- not the pre-revision 18c55f6 checkout."
   },
   "commands": {
     "gates": "cd royalty-sim && cargo build --release && cargo test --release && cargo clippy --release --all-targets -- -D warnings",
@@ -239,7 +239,7 @@
     }
   },
   "residual_gap": {
-    "funded_address_balance_paths": "redeem_all_and_distribute and sweep_and_deposit have no executable success path in the Move unit VM (settled snapshot is always 0). Not covered by any scripted test. Exercised once by hand on testnet (Between the Doors: app distribution, recording deposits, four sweeps) in digest 3NwduZ4n6Zw93tjYmdRBWsJHSgxpnQyfSV6drf7bz1mG - a real execution, but NOT a repeatable test and not replayable from this manifest. Needs a localnet/testnet E2E."
+    "funded_address_balance_paths": "redeem_all_and_distribute and settle have no executable success path in the Move unit VM (settled snapshot is always 0). Not covered by any scripted test. Exercised once by hand on testnet (Between the Doors: app distribution, recording deposits, four sweeps) in digest 3NwduZ4n6Zw93tjYmdRBWsJHSgxpnQyfSV6drf7bz1mG - a real execution, but NOT a repeatable test and not replayable from this manifest. Needs a localnet/testnet E2E."
   },
   "scenarios": [
     {
@@ -2394,6 +2394,15 @@
       "move_verdict": "AGREE"
     },
     {
+      "file": "royalty-sim/scenarios/verifier/a1-settle-parked-no-stakers.json",
+      "name": "a1-settle-parked-no-stakers",
+      "sha256": "a2c9a641b27e419c21f321314bb70b3f2fdcad5f7885d45a5fe7c9de0a089a44",
+      "ops": 9,
+      "corpus": "verifier",
+      "model_verdict": "PASS",
+      "move_verdict": "AGREE"
+    },
+    {
       "file": "royalty-sim/scenarios/verifier/f4a-overpayment-carry-inheritance.json",
       "name": "f4a-overpayment-carry-inheritance",
       "sha256": "aa96b84f89d8f96e12ee6b8bcdef17920178765e44b73edf1df29a36c929979e",
@@ -2492,5 +2501,9 @@
     "differential_SKIP": 1,
     "hand_written_move_tests": 15,
     "model_scenarios_passing": 248
+  },
+  "post_revision_additions": {
+    "date": "2026-09-10",
+    "note": "totals/headline/differential_result above are the original 2026-09-09 campaign's own scope (248 scenarios, 239/0/1) and are left as a historical record, not re-run. The scenarios array now carries one additional entry beyond that count: a1-settle-parked-no-stakers (scenarios/verifier/a1-settle-parked-no-stakers.json, 249th entry), added on the feat/settle-recover-coins branch as a differential regression check for a movegen defect found in that branch's own verification pass (F1: the Op::Settle generator proxy disagreed with the model when funds were parked at a pool with no stakers). model_verdict PASS, move_verdict AGREE; not part of the 88M-operation fuzz campaign or its 248-scenario total."
   }
 }
