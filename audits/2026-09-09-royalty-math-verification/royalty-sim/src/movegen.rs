@@ -311,12 +311,26 @@ fn emit_op(
         }
         Op::Settle { pool } => {
             let parked = world_before.pools.get(pool).map(|p| p.parked_at_address).unwrap_or(0);
-            if parked == 0 {
+            let staked_shares = world_before.pools.get(pool).map(|p| p.staked_shares).unwrap_or(0);
+            // Two situations both make a real `settle(&root)` the only
+            // faithful thing to generate: nothing parked, or something
+            // parked but `staked_shares == 0` (the guard order A2 pins:
+            // `Pool::settle` returns 0 *before* ever reading
+            // `parked_at_address`, so a value sitting there is irrelevant
+            // to the outcome). Only "parked and staked" needs the deposit
+            // proxy below.
+            if parked == 0 || staked_shares == 0 {
                 // Genuine `settle`: the unit VM never populates a positive
                 // settled-funds snapshot (see `royalty_pool_tests.move`'s own
                 // note to that effect), so this always returns 0 without
                 // touching state, matching `Pool::settle`'s model of that
-                // same case.
+                // same case. That holds even with a positive `parked` value
+                // when `staked_shares == 0` -- the guard runs first in both
+                // the model and the real Move, so the parked value is simply
+                // left in place (previously mishandled: this arm used to
+                // fall into the `deposit` proxy below whenever `parked > 0`,
+                // which aborts `ENoStakedShares` for real since no stake is
+                // registered -- see `scenarios/verifier/a1-settle-parked-no-stakers.json`).
                 let pv = ctx.pool(*pool)?.to_string();
                 out.push(format!("{IND}let mut p = sc.take_shared_by_id<{}>({pv});", pool_ty()));
                 out.push(format!(
@@ -338,15 +352,17 @@ fn emit_op(
                     out.push(format!("{IND}sui::test_scenario::return_shared(root);"));
                 }
             } else {
-                // `settle` proxy (see movegen.rs doc + NOTES.md): the unit VM
-                // never populates a positive settled-funds snapshot, so a
-                // `routed_stake::sweep`-parked value can't be recovered by a
-                // real `settle` call here. The model still folds it in (out
-                // of scope §7 models address-balance settlement timing as
-                // immediate), so the generated Move reaches the same
-                // post-state via a direct `deposit` of the same value --
-                // bit-identical to what `settle` would apply once it could
-                // observe the settlement.
+                // `settle` proxy: reached only when `parked > 0` AND
+                // `staked_shares > 0` (a real `settle(&root)` here would
+                // genuinely redeem and fold in that value on-chain too, but
+                // the unit VM never populates a positive settled-funds
+                // snapshot, so a `routed_stake::sweep`-parked value can't be
+                // recovered by a real `settle` call in a unit test). The
+                // model still folds it in (out of scope §7 models
+                // address-balance settlement timing as immediate), so the
+                // generated Move reaches the same post-state via a direct
+                // `deposit` of the same value -- bit-identical to what
+                // `settle` would apply once it could observe the settlement.
                 emit_deposit(out, ctx, *pool, parked)?;
                 if outcome.is_some() {
                     let mut world_after = world_before.clone();

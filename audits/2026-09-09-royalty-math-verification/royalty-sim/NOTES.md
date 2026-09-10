@@ -118,15 +118,29 @@ and time was better spent elsewhere:
   a funded success case"), so the only real, generatable `settle` behavior
   is the total 0-return case -- which the model correctly special-cases
   (a real `settle(&root)` call is emitted and asserted to return 0 and
-  leave `balance` unchanged, whenever `parked_at_address == 0`). When the
-  model has a positive `parked_at_address` (a routed sweep parked it
-  earlier in the same scenario), a real `settle` call still can't observe
-  it, so the generated Move reaches the identical post-state via
-  `p.deposit(balance::create_for_testing(parked))` instead -- bit-identical
-  to what `settle` would apply once it could observe the settlement, and
-  not a substitution for the *routed sweep's park* step itself (that part
-  -- `routed_pool.balance().value() == 0` after parking -- is asserted for
-  real, via `routed_stake::sweep`).
+  leave `balance` unchanged, whenever `parked_at_address == 0` **or**
+  `staked_shares == 0`). When the model has a positive `parked_at_address`
+  *and* `staked_shares > 0` (a routed sweep parked it earlier in the same
+  scenario and a stake has since registered), a real `settle` call still
+  can't observe the parked value, so the generated Move reaches the
+  identical post-state via `p.deposit(balance::create_for_testing(parked))`
+  instead -- bit-identical to what `settle` would apply once it could
+  observe the settlement, and not a substitution for the *routed sweep's
+  park* step itself (that part -- `routed_pool.balance().value() == 0`
+  after parking -- is asserted for real, via `routed_stake::sweep`).
+  **Verifier finding (2026-09-10, F1):** an earlier version of this arm
+  branched on `parked == 0` alone, so a positive parked value with
+  `staked_shares == 0` fell into the `deposit` proxy and generated a real
+  `p.deposit(...)` call that aborts `ENoStakedShares` -- disagreeing with
+  both the model (which correctly returns `Ok(0)` and leaves the parked
+  value untouched, since the guard runs before `parked_at_address` is even
+  read) and the real Move `settle`. Fixed by checking `staked_shares == 0`
+  first, alongside `parked == 0`, so that case takes the genuine-`settle`
+  branch instead. Reproduced and pinned by
+  `scenarios/verifier/a1-settle-parked-no-stakers.json`: `routed_sweep`
+  parks a reward at a pool with no stakers, `settle` on that pool asserts
+  `0` (previously would have aborted), then a stake registers and a second
+  `settle` recovers the parked value.
 - **`whale-claim-cycles-stay-solvent` ported at reduced scale.** The
   original `royalty_pool_accounting_tests.move` test runs 1000 deposit +
   claim cycles across 10 transactions. `scenarios/ported/whale-claim-cycles-stay-solvent.json`
