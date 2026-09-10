@@ -9,6 +9,7 @@ use royalty_pool::pool::{
     RoyaltyPool,
     RoyaltyPoolCreatedEvent,
     RoyaltyDepositedEvent,
+    CoinsRecoveredEvent,
     StakeRegisteredEvent,
     StakeUnregisteredEvent,
     RoyaltyClaimedEvent,
@@ -27,8 +28,8 @@ use sui::test_scenario::{Self, Scenario};
 // ALICE performs the cap-independent setup (standing in for the parent's own
 // cap-gated extension) and holds the stakes claimed against; STRANGER owns
 // nothing and proves the pool's directly unit-testable permissionless funding
-// paths (`deposit` and `receive_and_deposit`) by sender, not just by signature.
-// The empty-snapshot sweep test below is also executed by STRANGER.
+// paths (`deposit` and `recover_coins`) by sender, not just by signature.
+// The empty-settle test below is also executed by STRANGER.
 const ALICE: address = @0xA1;
 const STRANGER: address = @0x51;
 
@@ -668,13 +669,15 @@ fun test_sole_staker_indivisible_deposit_pays_exact_floor() {
     test_scenario::end(scenario);
 }
 
-// === Recovery paths: receive_and_deposit ===
+// === Recovery paths: recover_coins ===
 
 #[test]
-/// A `Coin<C>` transferred directly to the pool's address can be folded
-/// into the accumulator via `receive_and_deposit`, recovering the funds
-/// for staker distribution.
-fun test_receive_and_deposit_recovers_funds_at_pool_address() {
+/// A `Coin<C>` transferred directly to the pool's address is converted into
+/// funds at the same address by `recover_coins` — it deposits nothing.
+/// The return value equals the coin's value, a `CoinsRecoveredEvent` is
+/// emitted, the pool's `balance` is unchanged, and the coin object no longer
+/// exists (as a receivable) at the pool's address.
+fun test_recover_coins_converts_without_depositing() {
     let mut scenario = test_scenario::begin(ALICE);
     let pool_id = create_pool(&mut scenario);
 
@@ -694,27 +697,104 @@ fun test_receive_and_deposit_recovers_funds_at_pool_address() {
     let coin_id = object::id(&coin);
     transfer::public_transfer(coin, pool_id.to_address());
 
-    // Anyone can recover by calling receive_and_deposit on the pool.
+    // Anyone can recover it by calling recover_coins on the pool.
     scenario.next_tx(ALICE);
+    assert_eq!(
+        test_scenario::receivable_object_ids_for_owner_id<Coin<TEST_CURRENCY>>(pool_id),
+        vector[coin_id],
+    );
     let mut pool = take_pool(&scenario, pool_id);
     let ticket = test_scenario::receiving_ticket_by_id<Coin<TEST_CURRENCY>>(coin_id);
-    pool.receive_and_deposit(vector[ticket]);
-    assert!(pool.balance().value() == 500);
+    let value = pool.recover_coins(vector[ticket]);
+    assert_eq!(value, 500);
 
-    let reward = pool.claim_rewards(&mut s);
-    assert!(reward.value() == 500);
+    let recovered = event::events_by_type<CoinsRecoveredEvent<TEST_SHARE, TEST_CURRENCY>>();
+    assert_eq!(recovered.length(), 1);
+    let (event_pool_id, event_value) = pool::coins_recovered_event_fields(&recovered[0]);
+    assert_eq!(event_pool_id, pool_id);
+    assert_eq!(event_value, 500);
+
+    // Converted, not deposited: the balance is untouched.
+    assert_eq!(pool.balance().value(), 0);
     pool.unregister_stake(&mut s);
     test_scenario::return_shared(pool);
 
+    // The coin no longer exists as a receivable at the pool's address —
+    // visible once this transaction's effects land.
+    scenario.next_tx(ALICE);
+    assert_eq!(
+        test_scenario::receivable_object_ids_for_owner_id<Coin<TEST_CURRENCY>>(pool_id),
+        vector[],
+    );
+
     balance::destroy_for_testing(stake::destroy(s));
-    balance::destroy_for_testing(reward);
     test_scenario::end(scenario);
 }
 
-// === Recovery paths: sweep_and_deposit ===
+#[test]
+/// An empty `coins` vector is a no-op: returns 0 and emits nothing.
+fun test_recover_coins_empty_vector_is_noop() {
+    let mut scenario = test_scenario::begin(ALICE);
+    let pool_id = create_pool(&mut scenario);
 
-#[test, expected_failure(abort_code = pool::ENoSettledFunds, location = pool)]
-fun sweep_and_deposit_aborts_when_no_funds_are_settled() {
+    scenario.next_tx(ALICE);
+    let mut pool = take_pool(&scenario, pool_id);
+    let value = pool.recover_coins(vector[]);
+    assert_eq!(value, 0);
+    assert_eq!(
+        event::events_by_type<CoinsRecoveredEvent<TEST_SHARE, TEST_CURRENCY>>().length(),
+        0,
+    );
+    assert_eq!(pool.balance().value(), 0);
+    test_scenario::return_shared(pool);
+
+    test_scenario::end(scenario);
+}
+
+// === Recovery paths: settle ===
+
+#[test]
+/// `settle` with nothing settled at the pool's address returns 0 and
+/// changes nothing: balance and index are unchanged, and no
+/// `RoyaltyDepositedEvent` is emitted. Executed by STRANGER to pin that the
+/// entry is permissionless.
+fun settle_with_nothing_settled_is_a_noop() {
+    let mut scenario = test_scenario::begin(@0x0);
+    sui::accumulator::create_for_testing(scenario.ctx());
+    let pool_id = create_pool(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let mut pool = take_pool(&scenario, pool_id);
+    pool.register_stake(&mut s);
+    test_scenario::return_shared(pool);
+
+    scenario.next_tx(STRANGER);
+    let mut pool = take_pool(&scenario, pool_id);
+    let root = scenario.take_shared<AccumulatorRoot>();
+    let value = pool.settle(&root);
+    assert_eq!(value, 0);
+    assert_eq!(pool.balance().value(), 0);
+    assert_eq!(pool.cumulative_reward_per_share(), 0);
+    assert_eq!(
+        event::events_by_type<RoyaltyDepositedEvent<TEST_SHARE, TEST_CURRENCY>>().length(),
+        0,
+    );
+    pool.unregister_stake(&mut s);
+    test_scenario::return_shared(pool);
+    test_scenario::return_shared(root);
+
+    balance::destroy_for_testing(stake::destroy(s));
+    test_scenario::end(scenario);
+}
+
+#[test]
+/// `settle` on a pool with `staked_shares == 0` returns 0 without ever
+/// reading the accumulator — the unit VM cannot seed settled funds, so this
+/// test only pins the guard order (stakers checked before any accumulator
+/// read): no `RoyaltyDepositedEvent` is emitted and the balance is
+/// unchanged, exactly as the empty-settled case above.
+fun settle_with_no_stakers_is_a_noop() {
     let mut scenario = test_scenario::begin(@0x0);
     sui::accumulator::create_for_testing(scenario.ctx());
     let pool_id = create_pool(&mut scenario);
@@ -722,8 +802,35 @@ fun sweep_and_deposit_aborts_when_no_funds_are_settled() {
     scenario.next_tx(STRANGER);
     let mut pool = take_pool(&scenario, pool_id);
     let root = scenario.take_shared<AccumulatorRoot>();
-    pool.sweep_and_deposit(&root);
-    abort
+    let value = pool.settle(&root);
+    assert_eq!(value, 0);
+    assert_eq!(pool.balance().value(), 0);
+    assert_eq!(
+        event::events_by_type<RoyaltyDepositedEvent<TEST_SHARE, TEST_CURRENCY>>().length(),
+        0,
+    );
+    test_scenario::return_shared(pool);
+    test_scenario::return_shared(root);
+
+    test_scenario::end(scenario);
+}
+
+#[test]
+/// `settled_value` reads 0 for a pool with nothing settled at its address —
+/// the only value the unit VM can ever populate this view with.
+fun settled_value_reads_zero() {
+    let mut scenario = test_scenario::begin(@0x0);
+    sui::accumulator::create_for_testing(scenario.ctx());
+    let pool_id = create_pool(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let pool = take_pool(&scenario, pool_id);
+    let root = scenario.take_shared<AccumulatorRoot>();
+    assert_eq!(pool.settled_value(&root), 0);
+    test_scenario::return_shared(pool);
+    test_scenario::return_shared(root);
+
+    test_scenario::end(scenario);
 }
 
 // === View accessors ===
@@ -984,13 +1091,15 @@ fun test_full_lifecycle_emits_expected_events_with_exact_payloads() {
 
 #[test]
 /// The pool's directly testable funding paths — `deposit` and
-/// `receive_and_deposit` — are permissionless by construction: they take
+/// `recover_coins` — are permissionless by construction: they take
 /// `&mut RoyaltyPool` (shared) and need no capability. Proven here by a
 /// STRANGER sender who owns nothing (no cap, no stake, nothing from ALICE's
-/// setup), with ALICE's registered stake as the sole beneficiary. The Move
-/// unit VM does not populate funded `AccumulatorRoot` reads, so the amountless
-/// sweep is covered by its empty-snapshot test and requires localnet coverage
-/// for a funded success case.
+/// setup), with ALICE's registered stake as the sole beneficiary of the
+/// `deposit`. `recover_coins` only converts a payer's stray coin into funds
+/// at the pool's own address — it does not deposit — so it contributes
+/// nothing further to ALICE's claim; the Move unit VM does not populate
+/// funded `AccumulatorRoot` reads, so folding that converted value in via
+/// `settle` requires localnet coverage for a funded success case.
 fun stranger_funds_pool_without_capability() {
     let mut scenario = test_scenario::begin(@0x0);
     sui::accumulator::create_for_testing(scenario.ctx());
@@ -1008,8 +1117,8 @@ fun stranger_funds_pool_without_capability() {
     pool.deposit(balance::create_for_testing<TEST_CURRENCY>(300));
     test_scenario::return_shared(pool);
 
-    // --- STRANGER, tx: `receive_and_deposit` recovers a coin sent to the
-    // pool's address by yet another party (the payer) ---
+    // --- STRANGER, tx: `recover_coins` converts a coin sent to the pool's
+    // address by yet another party (the payer) into settled funds there ---
     scenario.next_tx(ALICE);
     let coin = coin::from_balance(balance::create_for_testing<TEST_CURRENCY>(500), scenario.ctx());
     let coin_id = object::id(&coin);
@@ -1018,14 +1127,18 @@ fun stranger_funds_pool_without_capability() {
     scenario.next_tx(STRANGER);
     let mut pool = take_pool(&scenario, pool_id);
     let ticket = test_scenario::receiving_ticket_by_id<Coin<TEST_CURRENCY>>(coin_id);
-    pool.receive_and_deposit(vector[ticket]);
+    let recovered_value = pool.recover_coins(vector[ticket]);
+    assert_eq!(recovered_value, 500);
+    // Nothing deposited: recover_coins only converts, never applies.
+    assert_eq!(pool.balance().value(), 300);
     test_scenario::return_shared(pool);
 
-    // --- ALICE, tx: the registered stake collects every stranger-funded unit ---
+    // --- ALICE, tx: the registered stake collects only what was actually
+    // deposited; the recovered coin awaits a later `settle` ---
     scenario.next_tx(ALICE);
     let mut pool = take_pool(&scenario, pool_id);
     let reward = pool.claim_rewards(&mut s);
-    assert_eq!(reward.value(), 800);
+    assert_eq!(reward.value(), 300);
     assert_eq!(pool.balance().value(), 0);
     pool.unregister_stake(&mut s);
     test_scenario::return_shared(pool);
