@@ -5,9 +5,10 @@
 //! directly rather than round-tripping through JSON + `movegen`, though the
 //! op list is still representable as a `ScenarioFile` for `--out` dumps.
 //!
-//! The profile's "sweep" weight is realized as `receive_and_deposit` with a
-//! random value: both recovery paths reduce to the identical `pool::deposit`
-//! call (SPEC §2.7), and `sweep_and_deposit`'s realistic trigger
+//! The profile's "sweep" weight is realized as an extra `deposit` with a
+//! random value: the old `receive_and_deposit` recovery path reduced to the
+//! identical `pool::deposit` call (SPEC §2.7) and has been folded into it
+//! directly now that the op is gone; `settle`'s realistic trigger
 //! (`routed_stake` parking, SPEC §3.1) is exercised by the routed-stake
 //! handwritten scenarios instead of the single-pool fuzz profiles. See
 //! NOTES.md.
@@ -44,7 +45,8 @@ impl std::str::FromStr for ProfileName {
 
 struct Profile {
     /// (weight, kind) for the weighted op choice, kinds: 0=deposit
-    /// 1=claim 2=register 3=unregister 4=sweep(receive_and_deposit proxy).
+    /// 1=claim 2=register 3=unregister 4=deposit (second bucket, doubles as
+    /// the always-available fallback -- see `run_one`).
     weights: [u32; 5],
     amount_buckets: Vec<(u64, u64)>,
     deposit_buckets: Vec<(u64, u64)>,
@@ -191,7 +193,7 @@ fn run_one(profile_name: ProfileName, seed: u64, op_count: usize) -> FuzzRunResu
             }
             choice -= w;
         }
-        // Fall back to a no-op-safe choice (4: sweep/receive_and_deposit,
+        // Fall back to a no-op-safe choice (4: the second deposit bucket,
         // always available) when the chosen kind's precondition can't be
         // met right now.
         let register_unavailable = room == 0 || live.len() >= prof.max_live;
@@ -252,10 +254,10 @@ fn run_one(profile_name: ProfileName, seed: u64, op_count: usize) -> FuzzRunResu
                 // profile's supply cap. Without this the cap is consumed
                 // monotonically and, once exhausted, `register` is
                 // permanently unavailable -- which pinned `live` at empty
-                // and turned every subsequent op into an aborting
-                // `receive_and_deposit` (ENoStakedShares). Measured at
-                // ~80% wasted ops on `realistic` before this fix; see
-                // REPORT.md "Handoff defects".
+                // and turned every subsequent op into an aborting `deposit`
+                // (ENoStakedShares). Measured at ~80% wasted ops on
+                // `realistic` before this fix; see REPORT.md "Handoff
+                // defects".
                 if let Some(w) = world.stakes.get(&stake) {
                     total_registered = total_registered.saturating_sub(w.amount as u128);
                 }
@@ -267,7 +269,7 @@ fn run_one(profile_name: ProfileName, seed: u64, op_count: usize) -> FuzzRunResu
             _ => {
                 let value = pick_bucket(&mut rng, &prof.deposit_buckets);
                 step_ops.push(RawOp {
-                    op: "receive_and_deposit".into(),
+                    op: "deposit".into(),
                     pool: Some(0),
                     value: Some(value),
                     ..Default::default()

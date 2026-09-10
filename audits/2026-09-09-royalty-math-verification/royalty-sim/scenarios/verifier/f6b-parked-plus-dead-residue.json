@@ -10,8 +10,8 @@
     {"op": "unregister", "pool": 1, "stake": 2},
     {"op": "deposit", "pool": 0, "value": 7}, {"op": "routed_sweep", "routed": 0, "stake_pool": 0},
     {"op": "new_stake", "stake": 3, "amount": 2}, {"op": "register", "pool": 1, "stake": 3},
-    {"op": "sweep_and_deposit", "pool": 1},
+    {"op": "settle", "pool": 1},
     {"op": "pending", "pool": 1, "stake": 3, "expect": {"reward": 7}},
     {"op": "claim", "pool": 1, "stake": 3, "expect": {"reward": 7}},
-    {"op": "sweep_and_deposit", "pool": 1, "expect": {"abort": 7}}
+    {"op": "settle", "pool": 1, "expect": {"reward": 0}}
   ] }

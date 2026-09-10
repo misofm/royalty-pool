@@ -27,12 +27,14 @@
 ///   address is a pure function of `(parent_id, Share, Currency)`, so senders
 ///   need the pool neither shared nor even created yet; a later `new` claims
 ///   exactly that ID — and can only be the correctly-typed, shared pool.
-///   `receive_and_deposit` and `sweep_and_deposit` fold
-///   such funds into the accumulator, permissionlessly: anyone can complete
-///   the delivery. Both run through `deposit`, which aborts while no shares
-///   are staked — and the pool has no other withdrawal path — so funds at
-///   the pool's address wait, locked, until the pool exists and a stake
-///   registers.
+///   `recover_coins` and `settle` fold such funds into the accumulator,
+///   permissionlessly: anyone can complete the delivery. Both are total —
+///   a crank-facing call never aborts for having nothing to do. `settle`
+///   folds in what is settled at the pool's own address once stakers exist;
+///   while `staked_shares == 0` it returns 0 and reads nothing, so funds at
+///   the pool's address wait, unredeemed, until a stake registers.
+///   `recover_coins` never deposits — it only converts coin objects into
+///   funds at the same address for a later `settle` to redeem.
 ///
 /// ### No activation delay (deliberate)
 ///
@@ -88,7 +90,6 @@ const ENotRegistered: u64 = 3;
 const EPoolIdMismatch: u64 = 4;
 const ELastClaimIndexMismatch: u64 = 5;
 const EInvalidValue: u64 = 6;
-const ENoSettledFunds: u64 = 7;
 
 // === Constants ===
 
@@ -133,6 +134,13 @@ public struct RoyaltyPoolCreatedEvent<phantom Share, phantom Currency> has copy,
 }
 
 public struct RoyaltyDepositedEvent<phantom Share, phantom Currency> has copy, drop {
+    pool_id: ID,
+    value: u64,
+}
+
+/// Emitted by `recover_coins` when it converts a positive value. Not
+/// emitted for an empty vector — nothing happened.
+public struct CoinsRecoveredEvent<phantom Share, phantom Currency> has copy, drop {
     pool_id: ID,
     value: u64,
 }
@@ -219,33 +227,41 @@ public fun deposit<Share, Currency>(
     });
 }
 
-/// Receive `Coin<Currency>` objects sent directly to this pool's address
-/// and fold them into the accumulator. Recovery path for funds delivered to
-/// the pool's address rather than via the canonical extension path.
-public fun receive_and_deposit<Share, Currency>(
-    self: &mut RoyaltyPool<Share, Currency>,
-    coins: vector<Receiving<Coin<Currency>>>,
-) {
-    let balance = hikida::receive_balance(&mut self.id, coins);
+/// Redeem everything settled at this pool's own address and fold it into the
+/// accumulator. Recovery path for funds a routed sweep parked here while the
+/// pool had no stakers. Returns the value deposited. Returns 0 and changes
+/// nothing when nothing is settled or when `staked_shares == 0` (the funds
+/// stay at the pool's address until a stake registers). Permissionless.
+public fun settle<Share, Currency>(self: &mut RoyaltyPool<Share, Currency>, root: &AccumulatorRoot): u64 {
+    if (self.staked_shares == 0) return 0;
+
+    let balance = hikida::redeem_settled_balance<Currency>(&mut self.id, root);
+    if (balance.value() == 0) {
+        balance.destroy_zero();
+        return 0
+    };
+
+    let value = balance.value();
     self.deposit(balance);
+    value
 }
 
-/// Redeem the pool's funds settled at the start of the current consensus
-/// commit and fold them into the royalty accumulator. Recovery path for funds
-/// delivered via Sui's `send_funds` mechanism rather than via the canonical
-/// extension path.
-///
-/// The framework returns at most `u64::MAX` per call. Any excess, along with
-/// funds sent later in the current commit, remains for a subsequent sweep.
-/// Aborts with `ENoSettledFunds` when no positive amount is currently eligible.
-public fun sweep_and_deposit<Share, Currency>(
+/// Convert `Coin` objects sent to this pool's address into funds at the same
+/// address, so `settle` can fold them in next commit. Deposits nothing.
+/// Returns the value converted; 0 for an empty vector. Permissionless.
+public fun recover_coins<Share, Currency>(
     self: &mut RoyaltyPool<Share, Currency>,
-    root: &AccumulatorRoot,
-) {
-    let value = balance::settled_funds_value<Currency>(root, object::id(self).to_address());
-    assert!(value > 0, ENoSettledFunds);
-    let balance = hikida::redeem_balance<Currency>(&mut self.id, value);
-    self.deposit(balance);
+    coins: vector<Receiving<Coin<Currency>>>,
+): u64 {
+    let pool_address = self.id.to_address();
+    let value = hikida::receive_coins_and_send_funds(&mut self.id, coins, pool_address);
+    if (value > 0) {
+        emit(CoinsRecoveredEvent<Share, Currency> {
+            pool_id: object::id(self),
+            value,
+        });
+    };
+    value
 }
 
 /// Register a stake with the pool. Records the stake's entry index so future
@@ -390,6 +406,15 @@ public fun cumulative_deposits<Share, Currency>(
     self.cumulative_deposits
 }
 
+/// Funds of `Currency` settled at this pool's own address as of the start of
+/// the current consensus commit — what `settle` would redeem right now.
+public fun settled_value<Share, Currency>(
+    self: &RoyaltyPool<Share, Currency>,
+    root: &AccumulatorRoot,
+): u64 {
+    hikida::settled_balance_value<Currency>(&self.id, root)
+}
+
 /// Compute the deterministic address of a pool given its parent ID and
 /// `Currency` type parameter. Useful for off-chain derivation and for
 /// cross-module checks that the pool was minted from the expected parent.
@@ -432,6 +457,13 @@ public fun created_event_fields<Share, Currency>(
 #[test_only]
 public fun deposited_event_fields<Share, Currency>(
     event: &RoyaltyDepositedEvent<Share, Currency>,
+): (ID, u64) {
+    (event.pool_id, event.value)
+}
+
+#[test_only]
+public fun coins_recovered_event_fields<Share, Currency>(
+    event: &CoinsRecoveredEvent<Share, Currency>,
 ): (ID, u64) {
     (event.pool_id, event.value)
 }

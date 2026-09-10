@@ -830,3 +830,113 @@ done                                                   # expect 200 AGREE
 # fuzz campaign (160 jobs, 30-way; see CORPUS.json for the exact job list)
 xargs -P 30 -I{} -d'\n' bash -c '{}' < $R/fuzz-jobs.txt
 ```
+
+## 2026-09-10 API revision
+
+Scope: `royalty_pool::pool`'s two funded-recovery entries were replaced —
+`receive_and_deposit`/`sweep_and_deposit` (the latter aborting with
+`ENoSettledFunds` on an empty snapshot) became `settle`/`recover_coins`, both
+total (never abort for "nothing to do"; see the "Royalty Money Path" design
+doc, principle 4, and `TASKS-CORE.md` task A). `hikida` was bumped to its
+2026-09-09 publish (`c91d6a0f`). No economic behavior changed — this is a
+surface/semantics revision (abort → 0-return for the empty cases), not a math
+change — so this section re-runs the corpus against the new source rather
+than re-deriving any invariant.
+
+**Model and harness changes** (`royalty-sim/src/`): `model/pool.rs`'s
+`sweep_and_deposit` became `settle` (checks `staked_shares == 0` first and
+returns `Ok(0)` without touching `parked_at_address`, matching the new
+guard order; the old `ENoSettledFunds` abort path is gone); the
+`receive_and_deposit` model method was removed (its scenario op reduced to
+`deposit` already, so scenarios that used it now call `deposit` directly).
+`model/world.rs`'s `Op::ReceiveAndDeposit`/`Op::SweepAndDeposit` collapsed to
+one `Op::Settle` returning `Outcome::Amount`. `model/abort.rs` drops
+`PoolAbort::NoSettledFunds` (7; not renumbered, matching the Move side).
+`scenario.rs`'s op parser drops `"receive_and_deposit"` and renames
+`"sweep_and_deposit"` to `"settle"`. `movegen.rs`: a genuine `settle` call
+(nothing parked in the model) now generates a real `settle(&root)` call
+against a real `AccumulatorRoot` and asserts a `0` return with unchanged
+balance — the unit VM never populates a positive settled-funds snapshot, so
+that's the only real behavior it can generate; a `settle` call recovering a
+value the model parked via a routed sweep still can't be reproduced by a
+real `settle` call for the same reason, so it keeps proxying through a
+direct `deposit` of the same value (previously via `receive_and_deposit`,
+now a plain `deposit(balance::create_for_testing(..))`, which is what
+`receive_and_deposit` reduced to anyway). `fuzz.rs`'s "sweep" weight bucket
+now emits a second `deposit` instead of `receive_and_deposit` (the two were
+already bit-identical). `model/routed.rs`'s unit test renamed to
+`settle_recovers_parked_funds`.
+
+**Scenario JSON**: every `"op": "receive_and_deposit"` (149 `fuzzgen` files)
+became `"op": "deposit"`; every `"op": "sweep_and_deposit"` (`handwritten/10`,
+`adversarial/07a`/`07b`, `verifier/f6b`) became `"op": "settle"`, same
+`pool`/`value` fields, same economic content. `verifier/f6b`'s final op
+previously asserted `{"abort": 7}` on an empty settle; it now asserts
+`{"reward": 0}` (a successful no-op), which is the one behavioral
+expectation that had to change — everything else in every scenario keeps
+its original numbers.
+
+**`royalty-sim/move/royalty-pool/`** (pinned copy): `sources/pool.move`,
+`sources/stake.move`, and both test files replaced with the new-generation
+originals; `Move.toml`'s `hikida` rev bumped to `c91d6a0f536a5f1457b342a8838fc1d7ba09212e`
+(same as the main package). `move/routed-stake/` is untouched (task B); it
+still builds and tests clean against the updated local `royalty-pool` dependency
+because it never called the two removed functions directly (only in prose).
+
+### Gates re-run (`sui 1.78.1-722ac4fcf484`)
+
+| Gate | Result |
+|---|---|
+| 1. `cargo build --release`, `cargo test --release`, `cargo clippy --release --all-targets -- -D warnings` | green — 21 + 1 + 2 = 24 Rust tests, 0 clippy warnings |
+| 2. `run scenarios/ported/*.json scenarios/handwritten/*.json` | green, 16/16 passed, 0 violations |
+| 3. `diff scenarios/ported/*.json scenarios/handwritten/*.json --move-root move --sui $SUI` | green, **16/16 AGREE** |
+| 4. `fuzz --profile {realistic,stress,churn,dust,hugeshares} --seed 1 --ops 500 --count 50` (lighter than the original gate-4 counts, per task A5 — see the fuzz table below) | green, 0 failures |
+| 5. `README.md`/`NOTES.md` | present; `NOTES.md`'s `receive_and_deposit`/`sweep_and_deposit` notes updated to the new API (`README.md` needed no change — it never named either function) |
+
+### Full corpus re-run (every `scenarios/**/*.json`, 248 files)
+
+`run` over every corpus (`ported`, `handwritten`, `adversarial`, `verifier`,
+`fuzzgen`): **248/248 passed, 0 violations.**
+
+`diff --move-root move --sui $SUI`, in the same seven batches as the
+2026-09-09 campaign (`CORPUS.json`'s `differential_batches`):
+
+| Batch | AGREE | DISAGREE | SKIP |
+|---|---|---|---|
+| `ported` + `handwritten` (16) | 16 | 0 | 0 |
+| `adversarial`, non-`modelonly` (16) | 15 | 0 | 1 (`10-u64-balance-limit`: arithmetic abort, not representable as `expected_failure` — pre-existing, unrelated to this change) |
+| `fuzzgen/realistic-*` (50) | 50 | 0 | 0 |
+| `fuzzgen/churn-*` (50) | 50 | 0 | 0 |
+| `fuzzgen/dust-*` (50) | 50 | 0 | 0 |
+| `fuzzgen/hugeshares-*` (50) | 50 | 0 | 0 |
+| `verifier`, non-`modelonly` (8) | 8 | 0 | 0 |
+| **Total** | **239** | **0** | **1** |
+
+239 AGREE + 1 SKIP + 8 `-modelonly` (7 `adversarial`, 1 `verifier`:
+`f6d-two-routed-stakes-one-child-modelonly`, excluded from `diff` the same
+way as the adversarial `-modelonly` files — two routed stakes sharing one
+`routed_pool` id isn't representable by `movegen`'s one-dedicated-parent-
+per-routed-stake scheme) = 248, exactly reproducing `CORPUS.json`'s
+pre-revision `differential_result` (`AGREE: 239, DISAGREE: 0, SKIP: 1`). No
+scenario's economic expectation changed except `verifier/f6b`'s last op (see
+above), and it still AGREEs.
+
+Five fuzz profiles at `--count 50` (lighter than the §6 gate-4 counts, per
+task A5 — the 88M-operation campaign itself was not re-run):
+
+| Profile | Runs × ops | Failures | max I-C4 error |
+|---|---|---|---|
+| `realistic` | 50 × 500 | 0 | 1 unit |
+| `stress` | 50 × 500 | 0 | ≤ 20 units (rational, huge-share regime) |
+| `churn` | 50 × 500 | 0 | 1 unit |
+| `dust` | 50 × 500 | 0 | 1 unit |
+| `hugeshares` | 50 × 500 | 0 | ≤ 22 units (rational, huge-share regime) |
+
+Zero violations across all five. `CORPUS.json`'s per-file `sha256` was
+regenerated for the 153 scenario files this revision touched (149 `fuzzgen`
+`receive_and_deposit`→`deposit` renames + the 4 `sweep_and_deposit`→`settle`
+renames), and `toolchain.royalty_sim_content_sha256` was recomputed over the
+full `src`/`scenarios` tree. No other `CORPUS.json` field (verdicts, op
+counts, the 88M campaign's own numbers) was touched.
+
+No differential run disagreed; nothing was adjusted to force agreement.

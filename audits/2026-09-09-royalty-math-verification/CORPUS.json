@@ -18,7 +18,7 @@
   "toolchain": {
     "sui": "sui 1.78.1-722ac4fcf484",
     "sui_path": "<root>/../bin/sui  (MUST be absolute when passed to --sui)",
-    "royalty_sim_content_sha256": "b92cccd0ff28e87478a5d0ca297553b7ccdafd73b385dbd780f01b38ff82ca9c",
+    "royalty_sim_content_sha256": "f06f8cfee7b9993d55749a4e9f7b92fa44c8422198e0543cc15bbcfbf74002df",
     "royalty_sim_content_sha256_recipe": "cd royalty-sim && find src scenarios -type f | sort | xargs sha256sum | sha256sum",
     "prover": "sui-prover v1.5.3; Boogie 3.5.7; .NET 8; Z3 4.15.3 (toolchain/)",
     "python_oracle": {
@@ -362,7 +362,7 @@
     {
       "file": "royalty-sim/scenarios/handwritten/10-sweep-and-deposit-recovery.json",
       "name": "10-sweep-and-deposit-recovery",
-      "sha256": "dfb1e671618468da919f6377330f59cc02c6b766b94ba30b8d56bb9af92f252b",
+      "sha256": "1d3af3e866e5f20336fb8faaae70a1724a84d950feb199ea406287ac9bcc201e",
       "ops": 7,
       "corpus": "handwritten",
       "model_verdict": "PASS",
@@ -488,7 +488,7 @@
     {
       "file": "royalty-sim/scenarios/adversarial/07a-parked-then-one-staker.json",
       "name": "07a-parked-then-one-staker",
-      "sha256": "dbafbda01e98964e6d314686579fa86ca859c012e4139bd007eb3a89a34bd457",
+      "sha256": "eec90e17e6b024ffa799c7883a1e7fc6bb011efa429585b8c70217fe7242b478",
       "ops": 12,
       "corpus": "adversarial",
       "model_verdict": "PASS",
@@ -497,7 +497,7 @@
     {
       "file": "royalty-sim/scenarios/adversarial/07b-parked-then-two-stakers.json",
       "name": "07b-parked-then-two-stakers",
-      "sha256": "4cb7b0a6f597840cd5c4fadda14932be139f87550e9348bb384b6f5bba6f0496",
+      "sha256": "16559a7a6909f4b2a13f7a76bae1c84a198d5d74bd83ecb42c20db624ab8677a",
       "ops": 15,
       "corpus": "adversarial",
       "model_verdict": "PASS",
@@ -605,7 +605,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-001.json",
       "name": "churn-seed101-001",
-      "sha256": "2457d171d552b57e42f0c1c0b0d6777e3e339891f5de2eefb1d71b090dd57d8d",
+      "sha256": "7a91423c95413408c4b4480a9d205735b3247ae718b92edf25dfbaaee3e07184",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -623,7 +623,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-003.json",
       "name": "churn-seed101-003",
-      "sha256": "e2d1a1948d437b6230825895ac62ba2bea0abf25a6891f9d3ed92549e4ad8937",
+      "sha256": "188bdbe10ce263d1c0e3471f74e59077fa85326c5e60ed510651d1c70e97e423",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -641,7 +641,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-005.json",
       "name": "churn-seed101-005",
-      "sha256": "7090b808ab1e2fd3afe6d4ad82f3b2bf06ce833527a0e1a49ed4ac8c3f8a354e",
+      "sha256": "9ddcfea9b9d168604e69e0c3c54bdb072b264b2664aa11022905d26b684b510c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -650,7 +650,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-006.json",
       "name": "churn-seed101-006",
-      "sha256": "6b23b856af5255d0ac89186207e97d5cba5a7ed4c9d917e1eac852303b0a541f",
+      "sha256": "ffabdce1b6ac3b445b528afd3de4011039d6d430fb706f8361a5e94280cbb6b7",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -659,7 +659,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-007.json",
       "name": "churn-seed101-007",
-      "sha256": "f9e232880c66e8ca7a6f0e8fb3ae11d676a67dd48d2139b92e5cf0df8f146b7a",
+      "sha256": "523f8737f0b6849222cea2fb78299130ff1dd9bc1f04445c9a71ff608e3f7034",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -695,7 +695,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-011.json",
       "name": "churn-seed101-011",
-      "sha256": "41886b129f98c2e3c682b0859601dc598b979358553ddce4b1740726d36e46f4",
+      "sha256": "5cf24fcb1746d5e5325bf28397dc631918162a39ac4566056bb18173296f184a",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -704,7 +704,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-012.json",
       "name": "churn-seed101-012",
-      "sha256": "dfd34f4acf9e9620a372e71c9d0bc23f73f057847f0d6edd38542729ed149442",
+      "sha256": "cd32351119fd755d095557c257d1e3161768cfc60ad12dabb0103ea7e76c4ccb",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -767,7 +767,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-019.json",
       "name": "churn-seed101-019",
-      "sha256": "737765776dce9037d8140a4412189e48dc75471d3fe237ae824792113f67c6ee",
+      "sha256": "fc0a569ddf253500a1a74d40995ce49a418319655943c2ec441f0f6d96eccad2",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -776,7 +776,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-020.json",
       "name": "churn-seed101-020",
-      "sha256": "9c03d777f949bab57a2880176ffbe1e15c1ea82ba97a546267f6ee00669a7012",
+      "sha256": "38928fd346ed5719d05e14f93aa17bbbae5000f1fe11b20c5d855d7da321e74e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -848,7 +848,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-028.json",
       "name": "churn-seed101-028",
-      "sha256": "585b90b58e20dac472fe29efcea0f8d9f5ecffe109a3bff97875dd92d1cec019",
+      "sha256": "698d51d28cb93aaef7252d5e9f40f33c5745e6099a7ae1c8be991db887610d4f",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -875,7 +875,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-031.json",
       "name": "churn-seed101-031",
-      "sha256": "8a489915f703911175b509a63cd9820198fff2aae17f556539aa9b52911dee38",
+      "sha256": "280953ba7d474b1ffba04160ccaf186f3ad94f17e51397b59ef686594d9b3445",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -893,7 +893,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-033.json",
       "name": "churn-seed101-033",
-      "sha256": "244f85f5c6f507f6754083515f930fbd95ffd6ea6ce6354220336067578fd760",
+      "sha256": "5bddf55fa6c74590a19f3803557435efdccd62460f12cad4bb7cf47458edd411",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -902,7 +902,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-034.json",
       "name": "churn-seed101-034",
-      "sha256": "a7e41346898f7138df69e79aea9209122ab9969acb3d4d211b4eae79ca3ef2c6",
+      "sha256": "2fdff6180bda940f4984f171d809289684a45af3ddf48c74b2d9670e667e7584",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -938,7 +938,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-038.json",
       "name": "churn-seed101-038",
-      "sha256": "bb2d91bd1c97f4fdd2704e09c4ed6c8b1e33d381da83c6f6005509a5b73c6bc1",
+      "sha256": "6451a6e39506805cda75c0879e1a1e81d30b4839513d885471997e45511d6383",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -947,7 +947,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-039.json",
       "name": "churn-seed101-039",
-      "sha256": "9ee471637d3be59b83e1a4b76755867ee130ba3d8d8cccf96fb47c88d61a9097",
+      "sha256": "9801ea6742495897aa9fd80c31929a7e6d9235a51ff173b93ee63000c0037ff8",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -956,7 +956,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-040.json",
       "name": "churn-seed101-040",
-      "sha256": "8f31c71102c9738e2c4a11cdcb48052b3f0d7d58a78eb8257a13cddd49b162a8",
+      "sha256": "d521ec8009783bf6e2d4fc4ffd3d117a4d002ece0d57b30e28555d6e93dac550",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -965,7 +965,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-041.json",
       "name": "churn-seed101-041",
-      "sha256": "f5e737206d44fe792db280661ef58eefa842a1f8c4d72bf8068e593474407e78",
+      "sha256": "bb38aea87a2d4c7caea52e8ae36626a386655813551da00c7819555b3f10c694",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -974,7 +974,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-042.json",
       "name": "churn-seed101-042",
-      "sha256": "a10dc084d430b5bba49e67c159210093a9c16dcb8afe2656068f924928efe223",
+      "sha256": "21e3305036f79ead3eaee9f001564fe2d973057586526ecec8454c30e8ddcff7",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -992,7 +992,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-044.json",
       "name": "churn-seed101-044",
-      "sha256": "fac6d86386466f5ca74870528744751b2fdc12dfc2423248f8caafbd09e2188d",
+      "sha256": "dd29f46df2c03edaef1dce0b41058c1c8101be6393f4fab006d96328430db70c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1001,7 +1001,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-045.json",
       "name": "churn-seed101-045",
-      "sha256": "d192b6b88c7e7ea71ee03b2e3a23fb22a1f2be8c37aef0374c1f6dd2dcb7983d",
+      "sha256": "604050d710a232dd7472ba4fad686d576ff13cb373729c42c6ab7ed176925737",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1010,7 +1010,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-046.json",
       "name": "churn-seed101-046",
-      "sha256": "0c1312426cbff200950d55e01a3168c0ef86f0b3d481104c6095cd87d2200cb3",
+      "sha256": "c1e4a01e23d33fe5767a231830f3b458bef1f50b5e8745bd6710abf78ede25f4",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1019,7 +1019,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/churn-seed101-047.json",
       "name": "churn-seed101-047",
-      "sha256": "eeda2d8e6873af63e5fe2fc41694aad9cb8e99822aa1c364dd38ab1657ca48f2",
+      "sha256": "36ca0d126619b0a36bd46239237f6f25e12fdd3c3d09b052b9440427666310b1",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1046,7 +1046,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-000.json",
       "name": "dust-seed102-000",
-      "sha256": "caa57e4a3437ba5529aea62634f8dc054e9ed225873ffbb89e0b8e70ae5953d4",
+      "sha256": "3d81f52d16a55000745e8a7c1b96232df840e402543bc5b6245f2a0e302ece7e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1055,7 +1055,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-001.json",
       "name": "dust-seed102-001",
-      "sha256": "bd5ccc7eeff0e84c62890c160e5bab69f9151e1ff903ebbee90caff799a42af1",
+      "sha256": "e96a10b6e948007d9ccd2a7b1060fbb028bbd439f254818e7213e22e2361f235",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1064,7 +1064,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-002.json",
       "name": "dust-seed102-002",
-      "sha256": "8abe90b287f86770e1fe3689be1f12f2445bad2b809242b1f6f2b4c5cb60a314",
+      "sha256": "10d85f7dac8ff6d4fa97eefe1d2d5334a835624d992e5f1d29d618fbafcaec43",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1073,7 +1073,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-003.json",
       "name": "dust-seed102-003",
-      "sha256": "b8fca67b99d6b7214b94782754e86d1a6bf7c71017676563d94b72c8925839c5",
+      "sha256": "92b79344e54fd529214588de6b712b4955ca69bc379e18eb5b846c61872c60bf",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1082,7 +1082,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-004.json",
       "name": "dust-seed102-004",
-      "sha256": "dc8927c97fc54439b19b510c3f45119eef93a09f880e3e6eda5082c78ee0d923",
+      "sha256": "96608ce2963baffcbc3a3ce604d94ccdfda2605db769f2ab4b89e8a2e67d249b",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1091,7 +1091,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-005.json",
       "name": "dust-seed102-005",
-      "sha256": "97e55710c8580463933024a195604bd16549343485814a52c121b255fe08fdec",
+      "sha256": "a5e30396e261275b42d595311a18ee222bbf802f6c08c68bbba88e739e2e43f8",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1100,7 +1100,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-006.json",
       "name": "dust-seed102-006",
-      "sha256": "6844286ef3136d1f84be38745d83d75092663d1943d921066efabb5c6e944ae4",
+      "sha256": "8279e72b8995e02dac9d3706a05850ec644db43cb8bda88700ac9e4303572ee9",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1127,7 +1127,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-009.json",
       "name": "dust-seed102-009",
-      "sha256": "253089e7b7ab06c25fc1e9886277177b74b732df8659c755110c8c2b3ea529c5",
+      "sha256": "de945ecfb742fb3f2adec105c82b3a9d23c4a9a1405dc84b79792a5896fa7697",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1163,7 +1163,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-013.json",
       "name": "dust-seed102-013",
-      "sha256": "268ba085b9580ca03d1e9b47165c2de215ea629c8daea58f367f225c5235f153",
+      "sha256": "28f45806d2a9c92d46195e0ed3aacba984a33995f4f2f598c33bc63f411b0a55",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1190,7 +1190,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-016.json",
       "name": "dust-seed102-016",
-      "sha256": "008d6b65e0f6da494c672ef224164049f383ab0a7974a0efe4e6cce71d1b0446",
+      "sha256": "9e50153e344433ba350daaeffd6b334f8dacd00308524b76fd0d47fc7e80d2d7",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1199,7 +1199,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-017.json",
       "name": "dust-seed102-017",
-      "sha256": "90c5a7426380fa3e730c5f6101288bc6a0072dba0f093602c42173cf6003ff7b",
+      "sha256": "54ffca2f32da8db04e280e9e8b1325b2c087e3400db538f56e5c6621875fecbe",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1208,7 +1208,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-018.json",
       "name": "dust-seed102-018",
-      "sha256": "54fb8c2e130d041e07ef37a433a68316dbac51039315261a8d007d72945eb640",
+      "sha256": "a4715da86ce5da404730919b756dbc17eeda57b461b0163c78cf4f7a27dd4a20",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1217,7 +1217,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-019.json",
       "name": "dust-seed102-019",
-      "sha256": "cb41b2b4d22613f5019928f4c0cbd4a5b9f37cd03d3017252251a97fb04117ed",
+      "sha256": "73c2b0a71009a93879be73979aaa2affc2a19ede0db5012a8a92bbc6023c72e5",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1226,7 +1226,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-020.json",
       "name": "dust-seed102-020",
-      "sha256": "8666b99f7e8c2eadea0dad697e7bdacdd06287c70a1da232f9b23514c2cb1287",
+      "sha256": "7a786c74a9c3af5786e8493b2254d148b38e4bfa45fca7d229b025056d3fca3e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1271,7 +1271,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-025.json",
       "name": "dust-seed102-025",
-      "sha256": "48b49c828b6be410ce57d55e3747ed8b46ee3c4272b6cd094ee4db1d94dc570c",
+      "sha256": "a4e69a051d9ff21f743ee5beccb78414065acb73f2d3cdd84c89845bb98a674f",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1307,7 +1307,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-029.json",
       "name": "dust-seed102-029",
-      "sha256": "868e7b2c0de1aa3c166005818e468903db8bedc11ffbf2b06d6ce971949813cc",
+      "sha256": "67c8c307278b93b702e16616cbcee9349a19f8c341bfb15ee67f380df727dbd5",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1316,7 +1316,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-030.json",
       "name": "dust-seed102-030",
-      "sha256": "332ee456a7e7bbaea400f864b79533a79d54300e0e6ad13919975edbd046b8c5",
+      "sha256": "d5f94ebc239845d866fd72a680c6966e65bf20be869e12baf5110128f1cadee4",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1343,7 +1343,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-033.json",
       "name": "dust-seed102-033",
-      "sha256": "cfd51721c03d0778e5ed7e17de5393ba2ecd0e28b822fe2d1c613fb571565391",
+      "sha256": "fe3df438a765f5a49868955c358d104be3618c261d60412b646116a198ba14b9",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1352,7 +1352,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-034.json",
       "name": "dust-seed102-034",
-      "sha256": "faf84f9958f95644dc25dcffb7764b9e5542a6d3e2520c418e5e4caf3d119665",
+      "sha256": "45060c8006ec0fd03062d7fac756f54b4ac0bd91e67c7715ba1ebea7c31f84ee",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1370,7 +1370,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-036.json",
       "name": "dust-seed102-036",
-      "sha256": "c81423bc2ce04c92cfcca4054414c3d047d19f3c36ded4d983614b6a499e6bbe",
+      "sha256": "5277cefce29496d072bda5515319b1aab2c469e4616fc346ebf97f52f494e40a",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1379,7 +1379,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-037.json",
       "name": "dust-seed102-037",
-      "sha256": "5393959d0fa30e75f32616d85559c5ea926434f713ded3c85416c3e6f9f65ba3",
+      "sha256": "d8274597a7743da3847aeb1e56f3004103a81296a7aae5e873eb87e6dca99092",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1388,7 +1388,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-038.json",
       "name": "dust-seed102-038",
-      "sha256": "de0012a96b4ea7cb15fd8642d63bb0b904ae707f8026f578e1f734c47d0aa165",
+      "sha256": "c7dda56fef22c4b4e534211dc0beca0e0a2c5c4d6ce414bfb32b9dc330065a7c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1397,7 +1397,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-039.json",
       "name": "dust-seed102-039",
-      "sha256": "7a9f4b6ca38f232f51e735020ad83292e9fbe396e81fcc6f7a394f3bd9596ce0",
+      "sha256": "fc3f3e462337861cd0b17521c62e43b9aa3fb6af4a5309d5d1306ed90d75377e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1406,7 +1406,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-040.json",
       "name": "dust-seed102-040",
-      "sha256": "7991c52606596bc606746c4a9eb5ed9d892aaacf7fcc1ed81f12c9f43c86e844",
+      "sha256": "f784c4c3de01abfdf549524e99b5100ccd9f10608c21b40a3bb03916a7a1fc01",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1415,7 +1415,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-041.json",
       "name": "dust-seed102-041",
-      "sha256": "cddb30940cf762201e3f561602645750bb9c180a16b6a7e666b6779d469593f2",
+      "sha256": "657266eab5f3b79bc0c33a9b2eeb507b076bdd2eebde4343ea82492f834cce4a",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1433,7 +1433,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-043.json",
       "name": "dust-seed102-043",
-      "sha256": "5c90ae8e502444119657d1e80c696d9e1f96a65a0a5fe0970eb7245688924c1b",
+      "sha256": "99c4ba6131e0cac6445bdac2c096ea124d8de8d89bbdda42bb4b7e2309f79676",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1442,7 +1442,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-044.json",
       "name": "dust-seed102-044",
-      "sha256": "4b945a3ddf9c3fca817535f262a2b54fbee81e1d541b2416a2ff2f45d804257c",
+      "sha256": "bc2c1a6e77dab0325e0a0681813f08eedae97c64b2c518f5f226cfc8512df913",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1451,7 +1451,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-045.json",
       "name": "dust-seed102-045",
-      "sha256": "af44645c61602773bcbc9a875848ba529ffb1938b0cd5ac774870848cd9d9f2f",
+      "sha256": "b407d6db159c001557bbeb78fec65bd4ed53fab533f9823f43134808b5931f56",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1460,7 +1460,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-046.json",
       "name": "dust-seed102-046",
-      "sha256": "5dd4695992b1c7f92625950c1fdea754328fa7d57cb317c50f773bb0a605a2cf",
+      "sha256": "77880fe2c8552ffd9b538ad66ff1f46a285063da9292999d0a8f12fd859fc48f",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1487,7 +1487,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/dust-seed102-049.json",
       "name": "dust-seed102-049",
-      "sha256": "367ddacc57015f20f7b3d7645e69f519f8a699a1bd8cc455a17db9e45b8b9acc",
+      "sha256": "8536b1af18f5f1919b596d408272b7e4b1ae0cc4434072837368d93fc101808b",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1496,7 +1496,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-000.json",
       "name": "hugeshares-seed103-000",
-      "sha256": "9df6257ae990f5c4b261301bc5f2a08592c2f0e25e232b789c3fd5f250fb2d28",
+      "sha256": "dd8d61025e9981249364cb808c3c98b34038a521855bf570ab01c6d5ced738c2",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1505,7 +1505,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-001.json",
       "name": "hugeshares-seed103-001",
-      "sha256": "9b2b7fcfbc3dbc40833d7b07a903f50f1af0181610bdfe4b98dde4b8252310ba",
+      "sha256": "84bac14f4f9404421d7ef7db807a90e12ec62121e6be06c1fcd31e8f75f9e352",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1514,7 +1514,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-002.json",
       "name": "hugeshares-seed103-002",
-      "sha256": "93eaa6ce31687fb179723f54fb1fd0c5c5819cdb3f0b91170cef42f54bcf82bc",
+      "sha256": "c1a35e7870ff803ce9c01f99a16fba12fc2b7cdcc02ec9f588a8ddf409af97b4",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1523,7 +1523,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-003.json",
       "name": "hugeshares-seed103-003",
-      "sha256": "40abf2e4750858b8c656b047b1810e7848bbc3a6781688af1c79977473d161d8",
+      "sha256": "edb6837652f4efc96efd25bf702d8782affea44ef50c10076cb77f9993b57218",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1532,7 +1532,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-004.json",
       "name": "hugeshares-seed103-004",
-      "sha256": "b1f6ada9871188518d9ce783e886f3d307d1feaef7f77377350de3c758043080",
+      "sha256": "31d922e85c3a881ba2f87509bab38228c1008c418c5183d08b07d171d88c1c4c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1541,7 +1541,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-005.json",
       "name": "hugeshares-seed103-005",
-      "sha256": "11b2e1d3fa8238f48b3d44cad8ae99b37995f577300914f62ed744379ed58c4b",
+      "sha256": "b5e937908bad24651745bdc91eecc02bd5fd000869203441b07ba3976811eb48",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1550,7 +1550,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-006.json",
       "name": "hugeshares-seed103-006",
-      "sha256": "dcd1e88a55d07e28e72a6265aa5650a4ac17c1f551222efe10704e5abbdd0a8c",
+      "sha256": "5ff0645a3a1c046c7d96bd187d8659b6f3e15fd1e2c9364ff8709fb250476a1c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1559,7 +1559,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-007.json",
       "name": "hugeshares-seed103-007",
-      "sha256": "a3c056fb7703669662e78a52a77e232920afb5c409e64b6c4cae398e26899009",
+      "sha256": "9795e95127851159c0ef8b0f05d170997b1e293da87ef1d8e49d404b913aaf64",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1568,7 +1568,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-008.json",
       "name": "hugeshares-seed103-008",
-      "sha256": "a696df28ae83f17fa1cb216bf29abc6b6ccc261a727579609c29fa43f7f86026",
+      "sha256": "278b57877dc8a44e920245043802801d54b7336383a77ef3c042e478b6feb3e4",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1577,7 +1577,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-009.json",
       "name": "hugeshares-seed103-009",
-      "sha256": "18c126b87c44288016a414bcdf951e2ee45a5889c8c988b14f9753be36f7a6f4",
+      "sha256": "1a2300185486bab0429d39420f9a23004f7f31c9bfcaec81fbeec62abe85a53e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1586,7 +1586,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-010.json",
       "name": "hugeshares-seed103-010",
-      "sha256": "ff485a62c25237cf3bcac4dec28d0f50b25e8b7d5b5c04039cb341e183b367a2",
+      "sha256": "39164a9940640afae2f8d74723feb96793734f9c0a55b8485a58f5a1985b530e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1595,7 +1595,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-011.json",
       "name": "hugeshares-seed103-011",
-      "sha256": "33ca765158ad1572920d7abc9813cd658d0838650fe984712a8ad7787219db3c",
+      "sha256": "b0dd98967df3efdef95083b5d74a1443bcb37b771d47d96dd6a544e10879fe25",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1604,7 +1604,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-012.json",
       "name": "hugeshares-seed103-012",
-      "sha256": "da4ac27d2425ccea70a6762ba6c972b72d8c3520d5b449ead9fd1b5ba66448a5",
+      "sha256": "8624fa50c1d76fd54ac5246d77d680c3fd542a2d1bf19b4ad7c73e639c2a7a21",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1613,7 +1613,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-013.json",
       "name": "hugeshares-seed103-013",
-      "sha256": "b8057d796de7cf3e87d03de8bd8bd5bf14c82115423d26d3970a44bc9f8f5bbe",
+      "sha256": "375c7884a30617046a1a0d9b1ebbf5ab0f82ed2c8ca4f1524604d69413e1f4d3",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1622,7 +1622,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-014.json",
       "name": "hugeshares-seed103-014",
-      "sha256": "044c531bc2af83b4518d18901d9384d594fb516aa43c0b59ede4b6b4a93c1133",
+      "sha256": "8a0bde6ac0c7c9c6131f435de2c7903f9a15c64f9cee3674327650078557fc4e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1631,7 +1631,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-015.json",
       "name": "hugeshares-seed103-015",
-      "sha256": "a2fb23876b8684b3390946f471eefd2ef925625453654ddbe94fdcd69c8959b0",
+      "sha256": "22ddda36f7d8b2745e40f2c49028241c644fa92328d203b85ecdf78a88a4f37c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1640,7 +1640,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-016.json",
       "name": "hugeshares-seed103-016",
-      "sha256": "64b7e66b5d61ed07b54a33967ac33aa4cf5d49d65c2a39422a7c688b27356bfb",
+      "sha256": "84c96070f808894d9c39236496276b31703c34c3e8e43739637c1610304b5249",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1649,7 +1649,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-017.json",
       "name": "hugeshares-seed103-017",
-      "sha256": "19b70679572a52ca4aa892b0cd10a2c3e1052d38c8ed6544639c4da26bcb93c8",
+      "sha256": "2dd80a66e884a1b1487be0a25ef2b85f9bb0d35ac5e2f113caaba308325c1441",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1658,7 +1658,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-018.json",
       "name": "hugeshares-seed103-018",
-      "sha256": "e44134afd0ff2811d7629215ab4dd5859972104999d07da1ac40812f6853894b",
+      "sha256": "6e5c5f60967f49b87ba2ff5b4ff95a0ede272e091a32c6ae365d403f4a23a090",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1667,7 +1667,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-019.json",
       "name": "hugeshares-seed103-019",
-      "sha256": "8827ea0767ca0ad1520381e723a06f0a0a4109bee1f68c0a75b6f6cb0d23ced5",
+      "sha256": "6529c7c14f2d7d48fad2f6b4ba5f35f386a2c19fa24d2318d5a57cbe18d53956",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1676,7 +1676,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-020.json",
       "name": "hugeshares-seed103-020",
-      "sha256": "e5ee5ba93e6d1f7bb21de0cd29214f639dc6d55844be131259265fd7c981a999",
+      "sha256": "d139cca389d22e8fc5f2373c029dd0b2e7ff05bc2437edf1ecef53ffa719cb60",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1685,7 +1685,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-021.json",
       "name": "hugeshares-seed103-021",
-      "sha256": "ff6ee355bc98781e3c50b723cebcbb9643c9bc92eacb2cafb8140b25327969ae",
+      "sha256": "c8df842557310d03f18b0aedb39187da7842b81d18a888a6aa92b84c79bce93d",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1694,7 +1694,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-022.json",
       "name": "hugeshares-seed103-022",
-      "sha256": "e5901922522e7e094150b2638da0565d87ecd73e43cf748834f5422572d89b44",
+      "sha256": "fe5857827d6cb2e2aaacd034e84ed2756f6f67efae96276ac502e8d07db7c557",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1703,7 +1703,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-023.json",
       "name": "hugeshares-seed103-023",
-      "sha256": "d61711d3bc4526e64b0a9ac9ecf4412acbcffb5dc329f638c8a8f2d4d26f8962",
+      "sha256": "7882a38addec5d3c28b16da7e431d6b2836c0b470daef787b4962cba29c85e89",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1712,7 +1712,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-024.json",
       "name": "hugeshares-seed103-024",
-      "sha256": "015b47a6e8647b75beea628b8f330025292813c9b7ac3fd8aa9fdaed43b81af1",
+      "sha256": "17857cf4a9577cbac42add14eb9f9db12ff0deba7a0606551ae2ffcdab470d75",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1721,7 +1721,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-025.json",
       "name": "hugeshares-seed103-025",
-      "sha256": "a14bca0445fd66ce10413c0b1291adba79e20a10068f6b313f9850deefb4988c",
+      "sha256": "a039325fe8220bd675a565b9015254cb4e4c080730242830ecacb07d0533f2c2",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1730,7 +1730,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-026.json",
       "name": "hugeshares-seed103-026",
-      "sha256": "4f9ca377798f649a36c89b39892b5f4365ac78b35803aa3c81b7c673ca593dd7",
+      "sha256": "27cf8b7c4bcd1d864932c420eaf37959f24b6fab47b9bda27db64d9d6b86c10a",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1739,7 +1739,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-027.json",
       "name": "hugeshares-seed103-027",
-      "sha256": "ef6ad9b9ed1de0b31fadfc182389cf39dffbf1025144315ac4d3c7a7273bf6c5",
+      "sha256": "ee8bfa05b91abc45c004a1fbee792382e16e093136ae36753721c9969cd7febf",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1748,7 +1748,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-028.json",
       "name": "hugeshares-seed103-028",
-      "sha256": "20e6b539f3cdae2f58f740791caf5730553142e8d6a396096ba3d86f34ed5102",
+      "sha256": "806c348a3099846b2d92604d1028ef3ad4c3713d263340a159d2be855a82c286",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1757,7 +1757,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-029.json",
       "name": "hugeshares-seed103-029",
-      "sha256": "de8c6b4407a9433ab45d78b207b8547437bd058b54269b8c83d4d1a3af3d1905",
+      "sha256": "1875d943b04a6f2ac4c858fe58bbcf16ce1ad62144f7749f8619032422cbe7cb",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1766,7 +1766,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-030.json",
       "name": "hugeshares-seed103-030",
-      "sha256": "0a05d5e0fb9601e78e73ef9717c3de51997949c2f277775ead4ec449ee8f9e4b",
+      "sha256": "b9fe1e647438df67ba7c8e2beea903f1eb0539e2932c26a9a7b9368e0c647521",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1775,7 +1775,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-031.json",
       "name": "hugeshares-seed103-031",
-      "sha256": "04627165380ecf8bc00ca35ac93134a9a3b831160fd268f9485d98901720a6dd",
+      "sha256": "87bb0f9b7f1ecfae77677c782621907f140555c7f099915cd34cf2ce16c3aa80",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1784,7 +1784,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-032.json",
       "name": "hugeshares-seed103-032",
-      "sha256": "ae874d53c52cf2077d9952d69681ffe4c4c9976b340b522dea8e12a9a1663670",
+      "sha256": "0fd343ab95a5d5b46a74f79a136a3d3178ffbd37b849011cb37f844370a35a77",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1793,7 +1793,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-033.json",
       "name": "hugeshares-seed103-033",
-      "sha256": "de37265d6a160943fb89dbae3b70a94646a2922e0cdf38c41de15fb6c0b3163b",
+      "sha256": "4c860965d48df4cbe154302fcb4b23cae2466e6f395aab65e94ac559e04f5e9b",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1802,7 +1802,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-034.json",
       "name": "hugeshares-seed103-034",
-      "sha256": "a112c755a3e5fa23a3d92f6a3f8467d770d08426ecd71d3cb459dec808809181",
+      "sha256": "6498eab623f45cd96ba28f6a3185ece63bd160c294a87d2d4691ecf5443559a8",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1811,7 +1811,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-035.json",
       "name": "hugeshares-seed103-035",
-      "sha256": "4864572678293c836c0ac042fbcf8b2a552b66073235496abb2fc7c7ed159762",
+      "sha256": "e4ad9c0ca60b677ba91050958785abbdfe523fa994b16029de531eae39a4f72e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1820,7 +1820,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-036.json",
       "name": "hugeshares-seed103-036",
-      "sha256": "2d081e151ca01aeded8f62a804e5126fef4a2cdd0abb8b874b4d7bc44ed02111",
+      "sha256": "ce6adec02ef233e5792abd5b413107efdab64e1015b1993d8fe728025315b856",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1829,7 +1829,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-037.json",
       "name": "hugeshares-seed103-037",
-      "sha256": "3d24ef6141df3cadead473f01a0a38ae7172cff8d5f24bdefab707bf83206f55",
+      "sha256": "ae0ff64813b7068d3d18158096b99f031c2bee8cd3e474bbe12e1041cbcf5f3c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1838,7 +1838,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-038.json",
       "name": "hugeshares-seed103-038",
-      "sha256": "ca7f063f90098f88fa6c1f7fa9ff242e9d8a73baad64f6fcb12fedd92f41e92b",
+      "sha256": "e6d4e6b903e25712a433985cd9fc6e7c2b602108f7527744d4cee75a3b1567e5",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1847,7 +1847,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-039.json",
       "name": "hugeshares-seed103-039",
-      "sha256": "761158127ee3067cf0bb1e6924ebbf7170e68b8fd1424709de1fcc4c74c52eee",
+      "sha256": "14fff532f39a06a408ac537742923b8edab39539fad26add8a078a1e9544dab2",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1856,7 +1856,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-040.json",
       "name": "hugeshares-seed103-040",
-      "sha256": "5f0066a71f881562ca73b5fbdda977af2cb22a08a98c6741d01f7baee685b94a",
+      "sha256": "381e83fb5d197dcbc6eeccd1a1867eddcd8474e5bbd77551c286cb1fa49bff47",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1865,7 +1865,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-041.json",
       "name": "hugeshares-seed103-041",
-      "sha256": "c31c0e17a137b93435d67015d18cf0b34764053242e95d62a1a365d058afd4c2",
+      "sha256": "3d8b014d7cc916ab086b3bbc3793bd64f959221d2efdec370b2b498acf71870f",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1874,7 +1874,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-042.json",
       "name": "hugeshares-seed103-042",
-      "sha256": "42f41f6bc033be89563c2aed445d5f8e552a1127ae76d29e4fc8dce09479dff3",
+      "sha256": "68daf7aad33e2246172b600dd4482645c7a6932b7a45c25da96a5e59c1a3931a",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1883,7 +1883,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-043.json",
       "name": "hugeshares-seed103-043",
-      "sha256": "d5a867635b1c506ac8f01fafed56ddeeafe1fc767fb983d6571fa952d3339d17",
+      "sha256": "d91b192118a232cf0d52dfd0f4d3226e9acf1a2ec24b926f474176937d959e78",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1892,7 +1892,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-044.json",
       "name": "hugeshares-seed103-044",
-      "sha256": "47f826fd56a824bb91e8b497eb7819aedb139dc774e077361463fb0ade781bc1",
+      "sha256": "cbd6f91d9348233948df22ff64dabec1fc82cd8299e102d28689856211a57641",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1901,7 +1901,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-045.json",
       "name": "hugeshares-seed103-045",
-      "sha256": "b0383f8c8f491b70f563e041fff17a5ec0aa5f282e0c0e04f097a109628aa89d",
+      "sha256": "18e11ab1dc7b55c2ae9546106a63a6d27bc20cb51f4c4510d8af4d35899939bb",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1910,7 +1910,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-046.json",
       "name": "hugeshares-seed103-046",
-      "sha256": "58afa37a386c671f847162c10a0f4575227142f329ec4821c22cf79b7cfddae9",
+      "sha256": "02a80098d040bbbdc00e600e7e6c8423bf2bd1fc970fe3b4b1dbd0f0ff32e3dd",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1919,7 +1919,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-047.json",
       "name": "hugeshares-seed103-047",
-      "sha256": "599c255cbe3c22c861c8e8a7b06482c68924b9897c80c69de753d4a7b4137d20",
+      "sha256": "0adf3b44144fc55758e01fc4b0fc98fcba3265d2f235446026e30dccba219d40",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1928,7 +1928,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-048.json",
       "name": "hugeshares-seed103-048",
-      "sha256": "06175c625f83f382e281c81426346395f2d6990dfe8083627256cae0ccf1b3c7",
+      "sha256": "96eeb8d3b1f3755d0a9372424bd7e79e06a6da60b7e5953f4946ecef3732b324",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1937,7 +1937,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/hugeshares-seed103-049.json",
       "name": "hugeshares-seed103-049",
-      "sha256": "83096fe4bdb10e1ed11862d2c6ef457b83a01d1cd5fbf7eeea3b44f345cf4ff6",
+      "sha256": "65fda4aa6fc809f503f0116202b1e824c24562c10bcfd4b087ef0ab74a5d7761",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1946,7 +1946,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-000.json",
       "name": "realistic-seed100-000",
-      "sha256": "7875fe17d4a00b3992c33d1d9065d281c9a1666f98074341dcc37a044ed50186",
+      "sha256": "7cb76155552abe6fbdf6dd010ff87c15476b1a5f0d0c88564015c3981537d335",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1955,7 +1955,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-001.json",
       "name": "realistic-seed100-001",
-      "sha256": "918e1427c4a5d69fc97f6c31e0ae40c66d185beae80f1e5f5658926f27e3974a",
+      "sha256": "d65ab6980aca3e2699c65e670abc1a165d683adab6f7df132b1d6a84164ccf11",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1964,7 +1964,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-002.json",
       "name": "realistic-seed100-002",
-      "sha256": "817353507c370a674fe5d8a0d0b529e807f623bc14038832ea81691e75eee396",
+      "sha256": "4ee021333c03e603cad26b5cbbdc5d7e933a9c4d87231a32cf265951ae653955",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1973,7 +1973,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-003.json",
       "name": "realistic-seed100-003",
-      "sha256": "eb3ff2f0611f9b70f182238307234cd6b6887839c66dd932d4542580fd713c34",
+      "sha256": "883845a39c5616d09326862c2318493b379b5b5d3d451d8c220eae07b0fa3ea7",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1982,7 +1982,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-004.json",
       "name": "realistic-seed100-004",
-      "sha256": "9e00203167c8a712a45dc4230b17d10bf623c1a93f2319d46966b3ecc43c1b5b",
+      "sha256": "5079eee672a0af23e384f5a9cbcc23ee46a02d2fd697db55ab33c30cfec78afb",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -1991,7 +1991,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-005.json",
       "name": "realistic-seed100-005",
-      "sha256": "36c483ec112f4ad2cc7e960e57ed62deb830cc2def036ffd460a12c8b100a507",
+      "sha256": "88182077b8d05930c7eb99e9d71c686b46b0249fe66c766262b8c344c920e9ff",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2000,7 +2000,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-006.json",
       "name": "realistic-seed100-006",
-      "sha256": "bef09bd21e5bf29372f8ce6ec70971fe07d99dd79bdcb6b922655ffb105fb13a",
+      "sha256": "47847177f670fef9537e92675dfcd26edac77106bb979f6091cf870f8ddcbf99",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2009,7 +2009,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-007.json",
       "name": "realistic-seed100-007",
-      "sha256": "39a84256900cf060a0cdada98d486a1cccdb48b8b277ce463a1855e0dab9b627",
+      "sha256": "8b4007e47386bfaf12f22fc9f3b28e7d6ae700032ce34c20a458432d927729ea",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2018,7 +2018,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-008.json",
       "name": "realistic-seed100-008",
-      "sha256": "310ab653e3fed9696d559a7d585e0c1dc44039fc29cfb54c03b869849e7d5433",
+      "sha256": "ee5fdab927fc7d1b96e9abad229c8e8ada2b5e4fb5d6de02043d9fac4206edc5",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2027,7 +2027,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-009.json",
       "name": "realistic-seed100-009",
-      "sha256": "bb1d95eb13f8808e165c97d3cb74ce17166c85acf6d42b5c141285b7af342a8f",
+      "sha256": "eb462011859e9b0fea361443ea501a3bd189fe2cc2e83fd3335ef6b03b23d20b",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2036,7 +2036,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-010.json",
       "name": "realistic-seed100-010",
-      "sha256": "6111f25e6faa9e087666378435a1de5132e843fb9c8fb8f4d1660d153a27bf16",
+      "sha256": "102448f1d59607bbb6b3ff629c3c73f6b5e011aa0a336369bd978c49ca8671d6",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2045,7 +2045,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-011.json",
       "name": "realistic-seed100-011",
-      "sha256": "3b1a71705f93e8958fbb30db50aa210ee0ab8b7bab1f89011f8e5f3cd5e0b68f",
+      "sha256": "0f3567bd13426dd358a59be6d1b9f9ed993b97d6daf2deeb48438c218cc6aac8",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2054,7 +2054,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-012.json",
       "name": "realistic-seed100-012",
-      "sha256": "24c488d49cd029cf4b09cfee9c830b79f6bd8cd7ad7ffe92599ccb743e098882",
+      "sha256": "c8a7d32c230b7511ceb4516ecd1465981ee1f29b593676deb8783ce1ef48cba8",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2063,7 +2063,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-013.json",
       "name": "realistic-seed100-013",
-      "sha256": "958186635b6b8e1887d229db6dc5a46b4731585b5de45c5e6d0cad1ad3860033",
+      "sha256": "3a9f39a125716a5ecb8237fe74c17e4b2cfc61be25829366fb5cd5372db62abc",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2072,7 +2072,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-014.json",
       "name": "realistic-seed100-014",
-      "sha256": "f1070cc6d33a836e17435c9186ecfbf7e7ca39cacf5fc9955f4e6828f9aeb63f",
+      "sha256": "b5c4920b1be1c0e57c93f60762c11e1ac749a52976394353dc834f4aa1f4c1a8",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2081,7 +2081,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-015.json",
       "name": "realistic-seed100-015",
-      "sha256": "04fab2011de3042d3c4ea5fc4311095e0de606ffc0aba06808aa9e71c815843b",
+      "sha256": "42e81d6c610f314c33feb7aa77d35ff36b855961f55e6d51fb496e430be2d978",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2090,7 +2090,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-016.json",
       "name": "realistic-seed100-016",
-      "sha256": "1dd6ae4166b9021db49a5474f34f8b11625dcb1ff8d3b03a81108fba0187b621",
+      "sha256": "d505f7dc8f041e66bb08c5e0b25c69d0861bbaa6f8ba342306f98f61b736c3ea",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2099,7 +2099,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-017.json",
       "name": "realistic-seed100-017",
-      "sha256": "383ddd50f6291baf21f146f0d86b4ae4170d4d2454122c38e0a59cac1ca3061d",
+      "sha256": "80acd1ddda0f5f2eb1d8feb8ca9e57e849fb64a238b8bb026ec31b67686e26fb",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2108,7 +2108,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-018.json",
       "name": "realistic-seed100-018",
-      "sha256": "219a55637844b634224bac92d707637083278094dd74bece265085a2f94a1789",
+      "sha256": "fc97dfc35e3ed85abbf81ecd48d51d1e653929c89b7f91c7c0194b12d8929c80",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2117,7 +2117,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-019.json",
       "name": "realistic-seed100-019",
-      "sha256": "16887faaa73d109211300b6491e957cc99e5332d5000a14a129f65e6d9c54a2c",
+      "sha256": "de01f6c28817c3171078a42c212838dcb846de75a32ef7395c10914a192e6991",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2126,7 +2126,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-020.json",
       "name": "realistic-seed100-020",
-      "sha256": "2935acc2ae5f9f1f56d4d6a044022a68b80fcfe08c69788e3947da52d8287c35",
+      "sha256": "13e9821e9dc48f2372cb4b7c5277e3878e7d678e2e9f6f7ad6b90b7266f840f5",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2135,7 +2135,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-021.json",
       "name": "realistic-seed100-021",
-      "sha256": "164277c7a09b3528a8d8709d22501af83bd2a853a46344b3a5ff78e004e92f83",
+      "sha256": "c3a168e800e48f49e9e25363a2cf8bafc5c43ef7f9f56c45124d0cafa03dd874",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2144,7 +2144,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-022.json",
       "name": "realistic-seed100-022",
-      "sha256": "4758db4c1f925b40bcd4a3e591bf38e14337a3a354b7f2b7ac617b4083a82c74",
+      "sha256": "22cf7e290fe613edef077ed8ed8a0056d3c933ff3b62e33fe27ba337b85995a7",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2153,7 +2153,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-023.json",
       "name": "realistic-seed100-023",
-      "sha256": "83cfac7e27aafe561e1a01b196964266b66d251559f8c85192eb29e4692936ab",
+      "sha256": "80cef13f5f77a98f4a213baef13757b028f2a2dc14799f023f2b91206d95f8bc",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2162,7 +2162,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-024.json",
       "name": "realistic-seed100-024",
-      "sha256": "a8e8d3462861dc0e4aabdfa73473478661db07a607040fe3c824b9f365c71c55",
+      "sha256": "b75a6fd641cb248516bc540dd8f297bb8af90ae898645ae4e77c6ff23e18d2ce",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2171,7 +2171,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-025.json",
       "name": "realistic-seed100-025",
-      "sha256": "0bfc352d38d9d675a60b9a298665affb9f60ad0e7b704cb28745f46626d2d3d2",
+      "sha256": "1873b8a8b5f8d88821ce53c46c82ce99c9d088413269303550220457a715a702",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2180,7 +2180,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-026.json",
       "name": "realistic-seed100-026",
-      "sha256": "5aa893fc4fc8c75ee30fec9c27bc09cd4a33797576063c212f313b3aa452fc05",
+      "sha256": "e27612365f1a0a81499d5c0fe6dd103f31a7d6af712f09f94bf8f48619618ad1",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2189,7 +2189,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-027.json",
       "name": "realistic-seed100-027",
-      "sha256": "2611ac526d686f188cf92b32ddbb26e04ba17221ee9c481933de490668bc4945",
+      "sha256": "9e567d994f3658c9f4f2dbdbccd08deb2f07beb02ff45f518a7f3f6a0ab01f52",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2198,7 +2198,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-028.json",
       "name": "realistic-seed100-028",
-      "sha256": "3c13d1d11deaaf3ec2ff1c2f5d53f858a92fe6dee9f5914ac7dce08ed5249909",
+      "sha256": "e641ed7e680e5971933c78293a634670f82c0b51be58b008a1d181d2d35776fe",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2207,7 +2207,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-029.json",
       "name": "realistic-seed100-029",
-      "sha256": "5c2327cba30c5301f066d4d8c7bdd31571496a9817c9d0564a94469c0737f2db",
+      "sha256": "9ed4e3b69b6097ba21d1ba2c5c9f882e5ec7f81b15ff05f4574f404f1ebd9946",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2216,7 +2216,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-030.json",
       "name": "realistic-seed100-030",
-      "sha256": "2bd63a403214b55780033e51e78eefc8edca9898f856aa44c8ce54848683dafe",
+      "sha256": "57b7bb38d4ab9bae92423482c842567d206ca1ded548eaecdddb1c2eec81fa50",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2225,7 +2225,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-031.json",
       "name": "realistic-seed100-031",
-      "sha256": "59da011d4fa88f7558b540ca38b4b80a30f9abee362a76311b6b23e7945a20e6",
+      "sha256": "3dafc738fda31217846e009348971856fba9fab4ee9fe4e19d37a4a18a693847",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2234,7 +2234,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-032.json",
       "name": "realistic-seed100-032",
-      "sha256": "92a7e9b62cfc0e037f2dc5bf4ced0345dd9a64473f392426c21baf198d61c9fb",
+      "sha256": "91deee2382a31d06ad12f2c26da60f2c8188f506e3a9551664dd00375b07437e",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2252,7 +2252,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-034.json",
       "name": "realistic-seed100-034",
-      "sha256": "3f073678add97a1fcd896cdf85372b44862cce2ae15a8825a4d152cc220c626d",
+      "sha256": "d31c694d794e05d1c9ca2aa3a296c2c0c17a75b84b23f2abcb882119ad6ffbcb",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2261,7 +2261,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-035.json",
       "name": "realistic-seed100-035",
-      "sha256": "b5e015c8a8c277249c6b89b04150352e67522bb43633c7ac7f31d31d4437cca6",
+      "sha256": "3eceea5d04cc7d48925e9368b9759f7981a8883697ed9821941bef1307c871dd",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2270,7 +2270,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-036.json",
       "name": "realistic-seed100-036",
-      "sha256": "b7c9308a83dcb5d76a4ad5530aca2ca6a328076f8addcba66e5ba3779b6cd9e3",
+      "sha256": "39794bbba53c354e1145574039e3a4dba24662e3673b8ed8ca1fbb08bc760e7b",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2279,7 +2279,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-037.json",
       "name": "realistic-seed100-037",
-      "sha256": "f934515876dd9c312b63e49f769424906fb2fdc4da9bf120fc81df6021e47d00",
+      "sha256": "32903f0a705ec403103060315de4d2b4f5a6bc598acfe4263a4855a273b3a5e9",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2288,7 +2288,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-038.json",
       "name": "realistic-seed100-038",
-      "sha256": "61a8db4f07c60ca52525d1f348551d9cf2cb8c57bade80c0cdd15fda2cbf0e29",
+      "sha256": "cf0dc1dfa566387367ec7ec56335769e520bd9a419a6ea3f5934a59858fe5060",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2297,7 +2297,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-039.json",
       "name": "realistic-seed100-039",
-      "sha256": "f397d47cc1172c20136aaac4e259b2d510c56f176a0af2afcd3423caddda99a7",
+      "sha256": "b080a7573cf29d5f18a4bb4df154c11d3e454f43161a3dfd452bb7ab3896b437",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2306,7 +2306,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-040.json",
       "name": "realistic-seed100-040",
-      "sha256": "de7fbb68902cb21fc2ee3dcdd9eb980f10c9cf0edefc302778bed95169f6cd68",
+      "sha256": "6b86fdef5a8b8430a4443156dd82b8643f592d5143e7cb410baccb2d783a38a8",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2315,7 +2315,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-041.json",
       "name": "realistic-seed100-041",
-      "sha256": "69dc8428b3fb5dc18ad7e0b9622304d8da33431baae9cf9883001562ea0639fa",
+      "sha256": "bd12ffb6e8f11dd66c58591953b11136830a228b558b1879378fae5cf933ff61",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2324,7 +2324,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-042.json",
       "name": "realistic-seed100-042",
-      "sha256": "4309a2c3b739d3f8f247a0dc62805652fedf76b7db34105d5a4ebfad0a36d43d",
+      "sha256": "a051d2f90f4f159a4bde24bf8a23ef1826d7716003b5ae4a51972924afc766e6",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2333,7 +2333,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-043.json",
       "name": "realistic-seed100-043",
-      "sha256": "afc27876c3fab99a03e825c3f3400fefa19b45a3145ac0badda557f8c7694d75",
+      "sha256": "81be1e5a2534b935901b1749fece66d46dd8c9c9e242e9e56bd0dbf6cda31b9c",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2351,7 +2351,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-045.json",
       "name": "realistic-seed100-045",
-      "sha256": "e6e706638f3fc4e974cb8f757c44e55bfa77dd747b73cd7f15a4e7ef9bed3709",
+      "sha256": "d0e932729128878f14dbb4f753280342ec01adeffd3b063c3ec93b5b6a93ffc3",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2360,7 +2360,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-046.json",
       "name": "realistic-seed100-046",
-      "sha256": "c0328320b9c13e78a84c8d72c00460d9c9d177cc6444ae8809b4489bbffdd38e",
+      "sha256": "0f1d4c20dc536284c85e8c5cf7e6e33545ef4597555ffc8a8040de0c33bb79d5",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2369,7 +2369,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-047.json",
       "name": "realistic-seed100-047",
-      "sha256": "044beef07b32fe966b1ad92002a49b19195dd7221f7066d3161c5bf25cbbbb86",
+      "sha256": "be6a8987be45d9cea8e62eab158798bdfb17c513abf3e614842a400e17938880",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2387,7 +2387,7 @@
     {
       "file": "royalty-sim/scenarios/fuzzgen/realistic-seed100-049.json",
       "name": "realistic-seed100-049",
-      "sha256": "b7d65b847b7ae11af9d1422e4968fb9dc7327866c26c513b464c03e67170db1c",
+      "sha256": "ab82855493d5dee830fd4de2cb0523fc224a942152757f487af4ad9aa815c56a",
       "ops": 60,
       "corpus": "fuzzgen",
       "model_verdict": "PASS",
@@ -2432,7 +2432,7 @@
     {
       "file": "royalty-sim/scenarios/verifier/f6b-parked-plus-dead-residue.json",
       "name": "f6b-parked-plus-dead-residue",
-      "sha256": "510cc027f6357c59d259e4c1c25fef1550f1344ca14697292ec2bf48acb46e6c",
+      "sha256": "f56a9c7ad1620569e843965e7d28a0077bf9f3edef9154ac6a3042efdfc723fe",
       "ops": 17,
       "corpus": "verifier",
       "model_verdict": "PASS",

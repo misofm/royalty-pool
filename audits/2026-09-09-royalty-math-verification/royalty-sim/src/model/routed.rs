@@ -100,8 +100,8 @@ impl RoutedStake {
         }
         if routed_pool.staked_shares == 0 {
             // reward.send_funds(routed_pool address): parked, recoverable via
-            // sweep_and_deposit (SPEC §3.1, I-C3). Address-balance settlement
-            // timing is out of scope §7 and modeled as immediate.
+            // settle (SPEC §3.1, I-C3). Address-balance settlement timing is
+            // out of scope §7 and modeled as immediate.
             routed_pool.parked_at_address = routed_pool
                 .parked_at_address
                 .checked_add(reward)
@@ -161,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    fn sweep_and_deposit_recovers_parked_funds() {
+    fn settle_recovers_parked_funds() {
         let mut stake_pool = Pool::new(0, 0);
         let mut routed_pool = Pool::new(1, 0);
         let s = Stake::new(0, 100).unwrap();
@@ -172,7 +172,8 @@ mod tests {
 
         let mut holder = Stake::new(1, 10).unwrap();
         routed_pool.register(&mut holder).unwrap();
-        routed_pool.sweep_and_deposit().unwrap();
+        let settled = routed_pool.settle().unwrap();
+        assert_eq!(settled, 500);
         assert_eq!(routed_pool.balance, 500);
         assert_eq!(routed_pool.pending(&holder).unwrap(), 500);
     }

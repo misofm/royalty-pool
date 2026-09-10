@@ -41,8 +41,7 @@ pub enum Op {
     Register { pool: PoolId, stake: StakeId },
     Unregister { pool: PoolId, stake: StakeId },
     Deposit { pool: PoolId, value: u64 },
-    ReceiveAndDeposit { pool: PoolId, value: u64 },
-    SweepAndDeposit { pool: PoolId },
+    Settle { pool: PoolId },
     Claim { pool: PoolId, stake: StakeId },
     Pending { pool: PoolId, stake: StakeId },
     NewStake { stake: StakeId, amount: u64 },
@@ -196,13 +195,9 @@ impl World {
                 self.pool_mut(*pool)?.deposit(*value)?;
                 Ok(Outcome::Unit)
             }
-            Op::ReceiveAndDeposit { pool, value } => {
-                self.pool_mut(*pool)?.receive_and_deposit(*value)?;
-                Ok(Outcome::Unit)
-            }
-            Op::SweepAndDeposit { pool } => {
-                self.pool_mut(*pool)?.sweep_and_deposit()?;
-                Ok(Outcome::Unit)
+            Op::Settle { pool } => {
+                let value = self.pool_mut(*pool)?.settle()?;
+                Ok(Outcome::Amount(value))
             }
             Op::Claim { pool, stake } => {
                 let mut p = self.pools.remove(pool).ok_or(WorldError::UnknownPool(*pool))?;

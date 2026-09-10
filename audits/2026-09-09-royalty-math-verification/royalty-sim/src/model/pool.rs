@@ -49,10 +49,9 @@ pub struct Pool {
     pub forfeited: U256,
     /// Funds "parked" at the pool's own address by `routed_stake::sweep`
     /// when this pool had no stakers (SPEC §3.1, `routed_stake.move:223-227`)
-    /// or otherwise sent to the pool address, waiting for
-    /// `sweep_and_deposit`/`receive_and_deposit`. Out of scope §7 says
-    /// address-balance settlement timing is modeled as immediate, so this is
-    /// simply a queue `sweep_and_deposit` drains in full.
+    /// or otherwise sent to the pool address, waiting for `settle`. Out of
+    /// scope §7 says address-balance settlement timing is modeled as
+    /// immediate, so this is simply a queue `settle` drains in full.
     #[serde(skip)]
     pub parked_at_address: u64,
     /// Exact (unfloored) accumulator index, `Σ value/staked_shares` over
@@ -156,26 +155,23 @@ impl Pool {
         Ok(())
     }
 
-    /// `receive_and_deposit` (`pool.move:225-231`). The simulator takes the
-    /// already-joined coin value directly rather than modeling
-    /// `hikida::receive_balance`'s `vector<Receiving<Coin<_>>>` (out of
-    /// scope §7: object ownership/transfer mechanics); the accounting from
-    /// `deposit` onward is bit-identical either way. See NOTES.md.
-    pub fn receive_and_deposit(&mut self, value: u64) -> Result<(), Abort> {
-        self.deposit(value)
-    }
-
-    /// `sweep_and_deposit` (`pool.move:241-249`). Aborts `ENoSettledFunds = 7`
-    /// when nothing is parked at the pool's address (`value > 0` check at
-    /// pool.move:246; `hikida::redeem_balance` can then never see `value ==
-    /// 0`, so `ENoValueToRedeem` is unreachable through this entry point).
-    pub fn sweep_and_deposit(&mut self) -> Result<(), Abort> {
+    /// `settle` (`pool.move`, replaces `sweep_and_deposit`). Total: returns
+    /// `Ok(0)` and changes nothing when `staked_shares == 0` (read nothing,
+    /// redeem nothing — the guard runs before any accumulator read) or when
+    /// nothing is parked at the pool's address. Otherwise redeems the parked
+    /// value and folds it into the accumulator via `deposit`, returning the
+    /// value deposited.
+    pub fn settle(&mut self) -> Result<u64, Abort> {
+        if self.staked_shares == 0 {
+            return Ok(0);
+        }
         let value = self.parked_at_address;
         if value == 0 {
-            return Err(Abort::Pool(PoolAbort::NoSettledFunds));
+            return Ok(0);
         }
         self.parked_at_address = 0;
-        self.deposit(value)
+        self.deposit(value)?;
+        Ok(value)
     }
 
     /// `register_stake` (`pool.move:255-275`).
@@ -318,6 +314,36 @@ mod tests {
             p.deposit(10).unwrap_err(),
             Abort::Pool(PoolAbort::NoStakedShares)
         );
+    }
+
+    #[test]
+    fn settle_is_total_with_no_stakers_or_nothing_parked() {
+        // No stakers, nothing parked: still a no-op returning 0.
+        let mut p = pool();
+        assert_eq!(p.settle().unwrap(), 0);
+        assert_eq!(p.balance, 0);
+
+        // Stakers, but nothing parked: also a no-op.
+        let mut s = Stake::new(0, 100).unwrap();
+        p.register(&mut s).unwrap();
+        assert_eq!(p.settle().unwrap(), 0);
+        assert_eq!(p.balance, 0);
+
+        // Parked, but no stakers: returns 0 and leaves the parked value in
+        // place (pins the guard order -- stakers checked before any
+        // redemption) rather than draining it into an unattributable
+        // deposit.
+        let mut p2 = pool();
+        p2.parked_at_address = 42;
+        assert_eq!(p2.settle().unwrap(), 0);
+        assert_eq!(p2.balance, 0);
+        assert_eq!(p2.parked_at_address, 42);
+
+        // Parked and staked: redeemed and folded in, returning the value.
+        p.parked_at_address = 42;
+        assert_eq!(p.settle().unwrap(), 42);
+        assert_eq!(p.balance, 42);
+        assert_eq!(p.parked_at_address, 0);
     }
 
     #[test]

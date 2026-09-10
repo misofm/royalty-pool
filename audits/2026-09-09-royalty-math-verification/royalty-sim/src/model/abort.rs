@@ -66,7 +66,8 @@ pub enum PoolAbort {
     PoolIdMismatch = 4,
     LastClaimIndexMismatch = 5,
     InvalidValue = 6,
-    NoSettledFunds = 7,
+    // 7 (`ENoSettledFunds`) was removed when `sweep_and_deposit` became
+    // `settle` (total; no abort for nothing settled). Not renumbered.
 }
 
 /// `royalty_pool::stake` — see `stake.move:30-31`.
