@@ -251,3 +251,76 @@ Checked and cleared — no finding:
   `4001·10¹⁸/4000`, carry 0), and claims paid the exact floors (3,000 to a
   3,000-share stake, 1,000 via a 1,000-share routed stake; 1 unit of residue
   left). The pool's address balance read 0 after the fold.
+
+## Amendment — 2026-09-10 (settle / recover_coins API revision)
+
+**Revision:** `feat/settle-recover-coins` · **Toolchain:** sui 1.78.1-722ac4fcf484 ·
+**Dependency:** `hikida` `c91d6a0f` (published 2026-09-09; testnet
+`0xc69d11860ccfbe50b558b15e8c026735995274d09e19c66c43c0870e6df79f3e`, mainnet
+`0x2ccb0ff53146ac5830f92c0c9f8e5260160705e1f15c7f6606340a1c94c2ab98`).
+
+The two funded-recovery entries are replaced to make every crank-facing function
+total — a permissionless call packed into a large batch must never abort because
+one item has nothing to do (SPEC principle carried over from the routed-stake/
+crank design work; see the "Royalty Money Path" design doc).
+
+- **Removed:** `receive_and_deposit` (coin-object recovery that deposited
+  directly), `sweep_and_deposit` (accumulator recovery that aborted with
+  `ENoSettledFunds` on an empty snapshot), and the `ENoSettledFunds` (7) error
+  code. The code is retired, not reused; the remaining codes (0–6) are
+  unchanged.
+- **Added:**
+  - `settle(pool, root): u64` — redeems everything settled at the pool's own
+    address and folds it into the accumulator. Total: returns 0 and changes
+    nothing when nothing is settled, or when `staked_shares == 0`.
+  - `recover_coins(pool, coins): u64` — converts `Coin<Currency>` objects sent
+    to the pool's address into funds at that same address (`hikida`'s
+    `receive_coins_and_send_funds`), for a later `settle` to redeem. Deposits
+    nothing itself. Total: an empty vector returns 0 and emits nothing.
+    Emits `CoinsRecoveredEvent<Share, Currency> { pool_id, value }` only when
+    `value > 0`.
+  - `settled_value(pool, root): u64` — read-only view of what `settle` would
+    redeem right now (`hikida::settled_balance_value`).
+
+**`settle`'s guard order.** The function checks `self.staked_shares == 0` and
+returns before touching the accumulator at all — no read, no redemption — so a
+pool with no stakers can never have its settled balance disturbed by a
+permissionless call; the funds stay parked at the pool's address exactly as
+`deposit`'s own `ENoStakedShares` guard already requires for every other
+funding path. Only once that guard passes does `settle` call
+`hikida::redeem_settled_balance`, and only a nonzero `Balance` from that call
+ever reaches `self.deposit(balance)` — a zero balance is destroyed and 0 is
+returned without deposit ever seeing it (so `deposit`'s own zero-value abort,
+`EInvalidValue`, can never fire from inside `settle`; `settle`'s two zero-return
+branches are the only paths that skip `deposit`, and every other path both
+computes a positive `value` and calls `deposit` with it).
+
+**Why `recover_coins` cannot misroute.** The recipient of the converted funds
+is computed as `self.id.to_address()` — the pool's own address, read from the
+pool object being mutably borrowed — and is never a caller-supplied argument.
+There is no code path by which the converted value can land anywhere other
+than the address it was already sent to; the function can only ever convert
+value already at the pool's own address into settled funds at that same
+address. Dust sent to grief it costs the sender's own storage; converting it
+costs the caller only gas.
+
+**Test coverage.** The unit VM cannot populate a positive settled-funds
+snapshot (see the existing "Move unit-test VM does not populate funded
+accumulator snapshots" note above, which predates this revision and still
+holds against the new entries). `tests/royalty_pool_tests.move` therefore
+covers only `settle`'s two zero-return paths (nothing settled;
+`staked_shares == 0`, pinning the guard order above) and the `settled_value`
+view's zero read; the positive-redemption path — a real `send_funds` folded
+by `settle` in the next commit — is E2E-only, exercised the same way the
+prior `sweep_and_deposit` success path was (see the 2026-09-07 localnet
+verification note above); a corresponding localnet/live-network run for
+`settle` is tracked the same way, not reproduced in this addendum.
+`recover_coins`'s full round trip (received, converted, balance unchanged,
+coin no longer receivable, event emitted, empty-vector no-op, permissionless
+caller) is fully covered in the unit VM, since it never touches the
+accumulator's settled-funds snapshot.
+
+**Verification corpus.** `audits/2026-09-09-royalty-math-verification/`
+(Rust model, differential Move-test generator, and fuzz profiles) was
+updated to the new API and re-run; see that directory's `REPORT.md`,
+"2026-09-10 API revision" section, for the numbers.
