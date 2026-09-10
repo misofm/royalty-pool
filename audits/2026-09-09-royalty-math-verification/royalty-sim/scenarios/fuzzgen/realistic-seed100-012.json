@@ -86,7 +86,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 22800,
@@ -431,7 +431,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 439329424444,
@@ -581,7 +581,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 797527,
@@ -671,7 +671,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 994182923903,

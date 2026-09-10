@@ -146,7 +146,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 153,
@@ -176,7 +176,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 593,
@@ -236,7 +236,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 779,
@@ -341,7 +341,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 473,
@@ -431,7 +431,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 369,
@@ -791,7 +791,7 @@
       "expect": null
     },
     {
-      "op": "receive_and_deposit",
+      "op": "deposit",
       "pool": 0,
       "stake": null,
       "value": 70,

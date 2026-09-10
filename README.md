@@ -16,18 +16,31 @@ The derivation key encodes both type parameters, so a pool's address is determin
 
 That property is what lets payers deliver to a derived address before the pool exists — funds wait at an address only the correctly-typed, shared pool can ever claim, and folding them in is permissionless.
 
-Funds delivered as coin objects are folded with `receive_and_deposit`. Funds
-delivered through Sui's funds accumulator are folded with
-`sweep_and_deposit(pool, root)`: the function reads the pool's balance settled
-at the start of the current consensus commit, redeems that amount, and deposits
-it for stakers. Callers pass the immutable system `AccumulatorRoot` at `0xacc`;
-they do not calculate or supply an amount. The read returns at most `u64::MAX`,
-so excess value and funds arriving later in the commit remain for a later
-sweep. An empty sweep aborts with `ENoSettledFunds`.
+## Recovery paths
+
+Both recovery entries are **total**: a crank-facing call never aborts for
+having nothing to do; it returns 0 and changes nothing.
+
+- `settle(pool, root)` redeems everything settled at the pool's own address
+  (via Sui's funds accumulator) and folds it into the accumulator. Callers
+  pass the immutable system `AccumulatorRoot` at `0xacc`; they do not
+  calculate or supply an amount. Returns the value deposited; returns 0
+  without touching the accumulator when nothing is settled, or when the pool
+  has no staked shares yet (the funds stay at the pool's address, unredeemed,
+  until a stake registers). The framework's read returns at most `u64::MAX`
+  per call, so excess value and funds arriving later in the current commit
+  remain for a later `settle`.
+- `recover_coins(pool, coins)` converts `Coin<Currency>` objects sent
+  directly to the pool's address into funds at that same address, so a later
+  `settle` can fold them in. It never deposits by itself. Returns the value
+  converted; 0 for an empty vector.
+- `settled_value(pool, root)` is a read-only view of what `settle` would
+  redeem right now.
 
 The Move unit-test VM does not populate funded accumulator snapshots. Unit
-tests cover the root wiring and empty-sweep error; funded sweep behavior must
-also be verified on localnet or a live network.
+tests cover the root wiring and both zero-return paths of `settle` (nothing
+settled, and no stakers yet); the positive-redemption path must be verified
+on localnet or a live network.
 
 ## License
 

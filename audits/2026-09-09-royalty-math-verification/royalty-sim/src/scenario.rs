@@ -121,10 +121,7 @@ impl RawOp {
             "register" => Op::Register { pool: self.req_pool()?, stake: self.req_stake()? },
             "unregister" => Op::Unregister { pool: self.req_pool()?, stake: self.req_stake()? },
             "deposit" => Op::Deposit { pool: self.req_pool()?, value: self.req_value()? },
-            "receive_and_deposit" => {
-                Op::ReceiveAndDeposit { pool: self.req_pool()?, value: self.req_value()? }
-            }
-            "sweep_and_deposit" => Op::SweepAndDeposit { pool: self.req_pool()? },
+            "settle" => Op::Settle { pool: self.req_pool()? },
             "claim" => Op::Claim { pool: self.req_pool()?, stake: self.req_stake()? },
             "pending" => Op::Pending { pool: self.req_pool()?, stake: self.req_stake()? },
             "new_stake" => Op::NewStake { stake: self.req_stake()?, amount: self.req_amount()? },

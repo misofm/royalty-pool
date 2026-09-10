@@ -5,4 +5,4 @@ license = "Apache 2.0"
 authors = ["Miso Labs, Inc. (build@miso.network)"]
 
 [dependencies]
-hikida = { git = "https://github.com/unconfirmedlabs/hikida.git", rev = "4abe4c1ff482655693698fa6ab8a6e2b58f8c635" }
+hikida = { git = "https://github.com/unconfirmedlabs/hikida.git", rev = "c91d6a0f536a5f1457b342a8838fc1d7ba09212e" }

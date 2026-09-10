@@ -76,8 +76,12 @@ cargo run --release -- diff scenarios/ported/*.json scenarios/handwritten/*.json
 (`--sui` defaults to `sui` on `$PATH`; in this environment it is
 `../bin/sui` relative to `royalty-verification/`.) This:
 
-1. For each scenario, generates a Move test module (see `movegen.rs`) into
-   `move/routed-stake/tests/gen/<name>.move`.
+1. Clears every `*.move` file out of `move/routed-stake/tests/gen/`, then
+   generates a Move test module (see `movegen.rs`) for each scenario into
+   `move/routed-stake/tests/gen/<name>.move`. Any hand-installed reproducer
+   (see `CORPUS.json`'s `hand_written_move_tests`) is cleared along with
+   everything else — reinstall it (`cp` it back in) after a `diff` run that
+   needs it present for a subsequent `sui move test`.
 2. Runs `sui move test royalty_sim_gen` once in `move/routed-stake/`.
 3. Parses the pass/fail lines and prints `AGREE <name>` or
    `DISAGREE <name> -- <detail>` per scenario.
@@ -86,6 +90,20 @@ cargo run --release -- diff scenarios/ported/*.json scenarios/handwritten/*.json
 
 Currently reports `AGREE` for all 16 scenarios under `scenarios/ported/` and
 `scenarios/handwritten/` (§6 gate 3).
+
+**The full corpus is run as seven separate `diff` invocations, not one
+`scenarios/**/*.json` glob** (see `CORPUS.json`'s `differential_batches`):
+`ported`+`handwritten`, `adversarial` (non-`modelonly`), `fuzzgen/realistic`,
+`fuzzgen/churn`, `fuzzgen/dust`, `fuzzgen/hugeshares`, and `verifier`
+(non-`modelonly`). Two independent reasons force the split: a single
+`scenarios/**/*.json` invocation generates a Move package whose largest
+function needs more local-variable slots than `LOCAL_INDEX_MAX` allows (the
+model-only scenarios alone overrun it), and even the non-model-only corpus
+run as one batch accumulates enough generated modules across a long-lived
+`tests/gen/` directory to exhaust the VM's `PACKAGE_ARENA_LIMIT_REACHED` —
+which step 1 above now prevents *within* one `diff` invocation, but each of
+the seven batches is still its own separate invocation for exactly that
+reason.
 
 ### `gen-move` -- just emit one scenario's generated Move test
 

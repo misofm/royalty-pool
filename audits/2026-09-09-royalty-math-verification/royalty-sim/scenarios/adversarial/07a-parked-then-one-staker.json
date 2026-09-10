@@ -64,7 +64,7 @@
       "stake": 1
     },
     {
-      "op": "sweep_and_deposit",
+      "op": "settle",
       "pool": 1
     },
     {

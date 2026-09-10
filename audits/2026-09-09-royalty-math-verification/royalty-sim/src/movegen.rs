@@ -204,8 +204,8 @@ fn emit_setup(out: &mut Vec<String>, ctx: &mut GenCtx, scenario: &ScenarioFile, 
     // `accumulator::create_for_testing` asserts `ctx.sender() == @0x0`
     // (`accumulator.move:17`), so begin at the system address whenever it's
     // needed -- matching `royalty_pool_tests.move`'s
-    // `sweep_and_deposit_aborts_when_no_funds_are_settled` -- and switch to
-    // ALICE on the first op's `next_tx` either way.
+    // `settle_with_nothing_settled_is_a_noop` -- and switch to ALICE on the
+    // first op's `next_tx` either way.
     if need_accumulator {
         out.push(format!("{IND}let mut sc = sui::test_scenario::begin(@0x0);"));
         out.push(format!("{IND}sui::accumulator::create_for_testing(sc.ctx());"));
@@ -241,19 +241,19 @@ fn emit_setup(out: &mut Vec<String>, ctx: &mut GenCtx, scenario: &ScenarioFile, 
     Ok(())
 }
 
-fn emit_receive_and_deposit(out: &mut Vec<String>, ctx: &GenCtx, pool: PoolId, value: u64) -> Result<()> {
+/// Emit a direct `deposit(balance::create_for_testing(value))` call. Used
+/// both for `Op::Deposit` and as the `Op::Settle` proxy below: the old
+/// `receive_and_deposit` (coin-object recovery, which folded straight into
+/// `deposit`) is gone, and its replacement, `recover_coins`, only converts a
+/// coin into settled funds at the pool's own address -- it does not deposit,
+/// so it can no longer stand in for a positive redemption in generated Move
+/// (see `emit_op`'s `Op::Settle` arm doc).
+fn emit_deposit(out: &mut Vec<String>, ctx: &GenCtx, pool: PoolId, value: u64) -> Result<()> {
     let pv = ctx.pool(pool)?.to_string();
-    out.push(format!(
-        "{IND}let coin = sui::coin::from_balance(sui::balance::create_for_testing<GenCurrency>({value}), sc.ctx());"
-    ));
-    out.push(format!("{IND}let coin_id = object::id(&coin);"));
-    out.push(format!("{IND}transfer::public_transfer(coin, {pv}.to_address());"));
-    out.push(format!("{IND}sc.next_tx(ALICE);"));
     out.push(format!("{IND}let mut p = sc.take_shared_by_id<{}>({pv});", pool_ty()));
     out.push(format!(
-        "{IND}let ticket = sui::test_scenario::receiving_ticket_by_id<sui::coin::Coin<GenCurrency>>(coin_id);"
+        "{IND}p.deposit(sui::balance::create_for_testing<GenCurrency>({value}));"
     ));
-    out.push(format!("{IND}p.receive_and_deposit(vector[ticket]);"));
     Ok(())
 }
 
@@ -299,11 +299,7 @@ fn emit_op(
             }
         }
         Op::Deposit { pool, value } => {
-            let pv = ctx.pool(*pool)?.to_string();
-            out.push(format!("{IND}let mut p = sc.take_shared_by_id<{}>({pv});", pool_ty()));
-            out.push(format!(
-                "{IND}p.deposit(sui::balance::create_for_testing<GenCurrency>({value}));"
-            ));
+            emit_deposit(out, ctx, *pool, *value)?;
             if outcome.is_some() {
                 let mut world_after = world_before.clone();
                 world_after.apply(op).ok();
@@ -313,42 +309,61 @@ fn emit_op(
                 out.push(format!("{IND}sui::test_scenario::return_shared(p);"));
             }
         }
-        Op::ReceiveAndDeposit { pool, value } => {
-            emit_receive_and_deposit(out, ctx, *pool, *value)?;
-            if outcome.is_some() {
-                let mut world_after = world_before.clone();
-                world_after.apply(op).ok();
-                assert_pool_state(out, &world_after, *pool, "p", None, level);
-            }
-            if !is_final_abort {
-                out.push(format!("{IND}sui::test_scenario::return_shared(p);"));
-            }
-        }
-        Op::SweepAndDeposit { pool } => {
+        Op::Settle { pool } => {
             let parked = world_before.pools.get(pool).map(|p| p.parked_at_address).unwrap_or(0);
-            if parked == 0 {
+            let staked_shares = world_before.pools.get(pool).map(|p| p.staked_shares).unwrap_or(0);
+            // Two situations both make a real `settle(&root)` the only
+            // faithful thing to generate: nothing parked, or something
+            // parked but `staked_shares == 0` (the guard order A2 pins:
+            // `Pool::settle` returns 0 *before* ever reading
+            // `parked_at_address`, so a value sitting there is irrelevant
+            // to the outcome). Only "parked and staked" needs the deposit
+            // proxy below.
+            if parked == 0 || staked_shares == 0 {
+                // Genuine `settle`: the unit VM never populates a positive
+                // settled-funds snapshot (see `royalty_pool_tests.move`'s own
+                // note to that effect), so this always returns 0 without
+                // touching state, matching `Pool::settle`'s model of that
+                // same case. That holds even with a positive `parked` value
+                // when `staked_shares == 0` -- the guard runs first in both
+                // the model and the real Move, so the parked value is simply
+                // left in place (previously mishandled: this arm used to
+                // fall into the `deposit` proxy below whenever `parked > 0`,
+                // which aborts `ENoStakedShares` for real since no stake is
+                // registered -- see `scenarios/verifier/a1-settle-parked-no-stakers.json`).
                 let pv = ctx.pool(*pool)?.to_string();
                 out.push(format!("{IND}let mut p = sc.take_shared_by_id<{}>({pv});", pool_ty()));
                 out.push(format!(
                     "{IND}let root = sc.take_shared<sui::accumulator::AccumulatorRoot>();"
                 ));
-                out.push(format!("{IND}p.sweep_and_deposit(&root);"));
+                out.push(format!("{IND}let settled_value = p.settle(&root);"));
+                out.push(format!("{IND}assert_eq!(settled_value, 0);"));
+                // Unconditional, regardless of the assert-site budget below:
+                // a 0 return must come with unchanged state.
+                let unchanged_balance = world_before.pools.get(pool).map(|p| p.balance).unwrap_or(0);
+                out.push(format!("{IND}assert_eq!(p.balance().value(), {unchanged_balance});"));
+                if outcome.is_some() {
+                    let mut world_after = world_before.clone();
+                    world_after.apply(op).ok();
+                    assert_pool_state(out, &world_after, *pool, "p", None, level);
+                }
                 if !is_final_abort {
                     out.push(format!("{IND}sui::test_scenario::return_shared(p);"));
                     out.push(format!("{IND}sui::test_scenario::return_shared(root);"));
                 }
             } else {
-                out.push(format!(
-                    "{IND}// sweep_and_deposit proxy (see movegen.rs doc + NOTES.md): the unit VM"
-                ));
-                out.push(format!(
-                    "{IND}// never populates a positive settled-funds snapshot, so the success path"
-                ));
-                out.push(format!(
-                    "{IND}// is exercised via receive_and_deposit, which folds into the identical"
-                ));
-                out.push(format!("{IND}// pool::deposit call."));
-                emit_receive_and_deposit(out, ctx, *pool, parked)?;
+                // `settle` proxy: reached only when `parked > 0` AND
+                // `staked_shares > 0` (a real `settle(&root)` here would
+                // genuinely redeem and fold in that value on-chain too, but
+                // the unit VM never populates a positive settled-funds
+                // snapshot, so a `routed_stake::sweep`-parked value can't be
+                // recovered by a real `settle` call in a unit test). The
+                // model still folds it in (out of scope §7 models
+                // address-balance settlement timing as immediate), so the
+                // generated Move reaches the same post-state via a direct
+                // `deposit` of the same value -- bit-identical to what
+                // `settle` would apply once it could observe the settlement.
+                emit_deposit(out, ctx, *pool, parked)?;
                 if outcome.is_some() {
                     let mut world_after = world_before.clone();
                     world_after.apply(op).ok();
@@ -498,7 +513,7 @@ fn build_test_fn(
 ) -> Result<String> {
     let mut out = Vec::new();
     let mut ctx = GenCtx::default();
-    let need_accumulator = scenario.ops[..end].iter().any(|o| o.op == "sweep_and_deposit");
+    let need_accumulator = scenario.ops[..end].iter().any(|o| o.op == "settle");
 
     out.push("#[test]".to_string());
     if let Some((code, loc)) = &abort {

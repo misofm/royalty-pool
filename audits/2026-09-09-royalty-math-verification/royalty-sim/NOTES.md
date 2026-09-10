@@ -39,22 +39,30 @@ bugs found and fixed during development.
   observable effect -- see DISCREPANCIES.md #1. It's wired through so a
   future op that actually models a raw `send_funds` call (not currently in
   the op set) could consult it.
-- **`receive_and_deposit`'s op signature** takes a plain `value: u64`
-  rather than modeling `hikida::receive_balance`'s
-  `vector<Receiving<Coin<_>>>` (object ownership/transfer mechanics are out
-  of scope §7). The accounting from `pool::deposit` onward is bit-identical
-  either way; `hikida::receive_balance`'s own precondition
-  (`ENoCoinsToReceive` on an empty vector) is unreachable through this
-  simplified op since the op always supplies a positive value.
-- **`sweep_and_deposit`'s "parked funds" queue.** Out of scope §7 says
-  address-balance settlement timing is modeled as immediate. The model
-  represents "funds sent to a pool's address, awaiting
-  `sweep_and_deposit`/`receive_and_deposit`" as a single ghost counter
+- **2026-09-10: `receive_and_deposit` op removed.** The Move-side
+  `receive_and_deposit` (coin-object recovery that deposited directly) was
+  removed when the API moved to `settle`/`recover_coins` (task A5); since
+  its accounting always reduced to a plain `pool::deposit(value)` call (see
+  the note this replaces, below), every scenario that used it now calls
+  `deposit` directly with the same value -- no economic content changed.
+- **`settle`'s "parked funds" queue** (renamed from `sweep_and_deposit`,
+  2026-09-10; the model's semantics were already total before the rename --
+  see the next bullet). Out of scope §7 says address-balance settlement
+  timing is modeled as immediate. The model represents "funds sent to a
+  pool's address, awaiting `settle`" as a single ghost counter
   (`Pool::parked_at_address`), populated only by `routed_stake::sweep`'s
-  park branch (SPEC §3.1) and drained in full by `sweep_and_deposit`. There
-  is no direct "send funds to a pool address" op in the scenario language
-  other than through a routed sweep; this was sufficient for every required
+  park branch (SPEC §3.1) and drained in full by `settle`. There is no
+  direct "send funds to a pool address" op in the scenario language other
+  than through a routed sweep; this was sufficient for every required
   scenario.
+- **2026-09-10: `sweep_and_deposit` became `settle`, total.** The old
+  `sweep_and_deposit` aborted (`ENoSettledFunds`) when nothing was parked;
+  `settle` returns `Ok(0)` instead in both no-op cases (nothing parked, and
+  `staked_shares == 0`, checked first and before any redemption -- matching
+  the new `pool.move` guard order). `Pool::settle`'s own unit test
+  (`model::pool::tests::settle_is_total_with_no_stakers_or_nothing_parked`)
+  pins all four cases (empty/empty, staked/empty, unstaked/parked,
+  staked/parked).
 - **`RoutedStake`'s Rust shape carries `parent`/`routed_pool` fields
   directly** (per TASKS-SONNET §1.3's literal struct definition), even
   though the real Move `RoutedStake` struct stores neither (they're passed
@@ -100,22 +108,39 @@ and time was better spent elsewhere:
   here, including the ones that need *multiple pools* of the same currency
   (the `EAlreadyRegistered`/`EPoolIdMismatch` shape) -- those just need
   distinct pool ids, not distinct Move types.
-- **`sweep_and_deposit`'s success path is proxied through
-  `receive_and_deposit`** in generated Move (see the doc comment on
-  `movegen::emit_op`'s `SweepAndDeposit` arm). The Move unit-test VM never
-  populates a *positive* settled-funds snapshot after `send_funds` in the
-  same transaction (confirmed directly: `royalty_pool_tests.move`'s own
-  comment, "The Move unit VM does not populate funded `AccumulatorRoot`
-  reads... requires localnet coverage for a funded success case"), so the
-  only real, generatable `sweep_and_deposit` behavior is the
-  `ENoSettledFunds` abort on an empty snapshot -- which the model
-  correctly special-cases (still emitted for real when `parked_at_address
-  == 0`). For the success case, both `sweep_and_deposit` and
-  `receive_and_deposit` reduce to the exact same `pool::deposit` call
-  after redemption, so the substitution is bit-identical from that point
-  on; it is not a substitution for the *routed sweep's park* step itself
-  (that part -- `routed_pool.balance().value() == 0` after parking -- is
-  asserted for real, via `routed_stake::sweep`).
+- **`settle`'s parked-value path is proxied through a direct `deposit`**
+  (2026-09-10; previously proxied through `receive_and_deposit`, which no
+  longer exists -- see the doc comment on `movegen::emit_op`'s `Op::Settle`
+  arm). The Move unit-test VM never populates a *positive* settled-funds
+  snapshot after `send_funds` in the same transaction (confirmed directly:
+  `royalty_pool_tests.move`'s own comment, "The Move unit VM does not
+  populate funded `AccumulatorRoot` reads... requires localnet coverage for
+  a funded success case"), so the only real, generatable `settle` behavior
+  is the total 0-return case -- which the model correctly special-cases
+  (a real `settle(&root)` call is emitted and asserted to return 0 and
+  leave `balance` unchanged, whenever `parked_at_address == 0` **or**
+  `staked_shares == 0`). When the model has a positive `parked_at_address`
+  *and* `staked_shares > 0` (a routed sweep parked it earlier in the same
+  scenario and a stake has since registered), a real `settle` call still
+  can't observe the parked value, so the generated Move reaches the
+  identical post-state via `p.deposit(balance::create_for_testing(parked))`
+  instead -- bit-identical to what `settle` would apply once it could
+  observe the settlement, and not a substitution for the *routed sweep's
+  park* step itself (that part -- `routed_pool.balance().value() == 0`
+  after parking -- is asserted for real, via `routed_stake::sweep`).
+  **Verifier finding (2026-09-10, F1):** an earlier version of this arm
+  branched on `parked == 0` alone, so a positive parked value with
+  `staked_shares == 0` fell into the `deposit` proxy and generated a real
+  `p.deposit(...)` call that aborts `ENoStakedShares` -- disagreeing with
+  both the model (which correctly returns `Ok(0)` and leaves the parked
+  value untouched, since the guard runs before `parked_at_address` is even
+  read) and the real Move `settle`. Fixed by checking `staked_shares == 0`
+  first, alongside `parked == 0`, so that case takes the genuine-`settle`
+  branch instead. Reproduced and pinned by
+  `scenarios/verifier/a1-settle-parked-no-stakers.json`: `routed_sweep`
+  parks a reward at a pool with no stakers, `settle` on that pool asserts
+  `0` (previously would have aborted), then a stake registers and a second
+  `settle` recovers the parked value.
 - **`whale-claim-cycles-stay-solvent` ported at reduced scale.** The
   original `royalty_pool_accounting_tests.move` test runs 1000 deposit +
   claim cycles across 10 transactions. `scenarios/ported/whale-claim-cycles-stay-solvent.json`
