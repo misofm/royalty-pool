@@ -13,8 +13,8 @@
 ///   of the last deposit
 /// - `pending_rewards` equals the next claim; a repeated claim pays 0
 ///
-/// Each operation runs in its own transaction so event and gas budgets stay
-/// per-op, as they would on chain.
+/// Each operation runs in its own simulated transaction to reset event state.
+/// The unit-test gas meter remains cumulative across the whole test.
 #[test_only]
 module royalty_pool::royalty_pool_accounting_tests;
 
@@ -199,9 +199,9 @@ fun fuzz(seed: u64) {
 
 // === Targeted scenarios ===
 
-fun setup(sc: &mut Scenario): ID {
+fun setup<Share, Currency>(sc: &mut Scenario): ID {
     let mut parent = object::new(sc.ctx());
-    let pool = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool = pool::new<Share, Currency>(&mut parent);
     let id = object::id(&pool);
     pool.share();
     destroy(parent);
@@ -213,7 +213,7 @@ fun setup(sc: &mut Scenario): ID {
 /// of its entitlement — nothing rounds against it at registration.
 fun late_small_registrant_gets_exact_floor() {
     let mut sc = test_scenario::begin(ALICE);
-    let id = setup(&mut sc);
+    let id = setup<TEST_SHARE, TEST_CURRENCY>(&mut sc);
     sc.next_tx(ALICE);
     let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(id);
     let mut b = stake::new(balance::create_for_testing<TEST_SHARE>(10), sc.ctx());
@@ -241,7 +241,7 @@ fun late_small_registrant_gets_exact_floor() {
 /// `carry` until they fold into a whole index unit.
 fun carry_folds_when_staked_exceeds_precision() {
     let mut sc = test_scenario::begin(ALICE);
-    let id = setup(&mut sc);
+    let id = setup<TEST_SHARE, TEST_CURRENCY>(&mut sc);
     sc.next_tx(ALICE);
     let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(id);
     let mut s = stake::new(balance::create_for_testing<TEST_SHARE>(std::u64::max_value!()), sc.ctx());
@@ -268,12 +268,14 @@ fun carry_folds_when_staked_exceeds_precision() {
 /// Under exact accounting every claim is ⌊shares · Δ / P⌋ and the pool stays
 /// solvent — the dust stake's exit is always reachable.
 fun whale_claim_cycles_stay_solvent() {
+    // Distinct primitive phantom tags bound event/type-name gas in this long
+    // test. All 1,000 accounting cycles and assertions remain unchanged.
     let mut sc = test_scenario::begin(ALICE);
-    let id = setup(&mut sc);
+    let id = setup<u8, u64>(&mut sc);
     sc.next_tx(ALICE);
-    let mut whale = stake::new(balance::create_for_testing<TEST_SHARE>(SUPPLY - 99_999_000), sc.ctx());
-    let mut dust = stake::new(balance::create_for_testing<TEST_SHARE>(99_999_000), sc.ctx());
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(id);
+    let mut whale = stake::new(balance::create_for_testing<u8>(SUPPLY - 99_999_000), sc.ctx());
+    let mut dust = stake::new(balance::create_for_testing<u8>(99_999_000), sc.ctx());
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<u8, u64>>(id);
     pool.register_stake(&mut whale);
     pool.register_stake(&mut dust);
     test_scenario::return_shared(pool);
@@ -282,10 +284,10 @@ fun whale_claim_cycles_stay_solvent() {
     let mut tx = 0u64;
     while (tx < 10) {
         sc.next_tx(ALICE);
-        let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(id);
+        let mut pool = sc.take_shared_by_id<RoyaltyPool<u8, u64>>(id);
         let mut i = 0u64;
         while (i < 100) {                     // 200 events per tx
-            pool.deposit(balance::create_for_testing<TEST_CURRENCY>(1));
+            pool.deposit(balance::create_for_testing<u64>(1));
             paid_whale = paid_whale + balance::destroy_for_testing(pool.claim_rewards(&mut whale));
             if (pool.pending_rewards(&dust) > 0) {
                 paid_dust = paid_dust + balance::destroy_for_testing(pool.claim_rewards(&mut dust));
@@ -299,7 +301,7 @@ fun whale_claim_cycles_stay_solvent() {
         tx = tx + 1;
     };
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(id);
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<u8, u64>>(id);
     destroy(pool.claim_rewards(&mut dust));
     pool.unregister_stake(&mut dust);
     destroy(pool.claim_rewards(&mut whale));
