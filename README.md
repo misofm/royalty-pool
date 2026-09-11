@@ -42,6 +42,40 @@ tests cover the root wiring and both zero-return paths of `settle` (nothing
 settled, and no stakers yet); the positive-redemption path must be verified
 on localnet or a live network.
 
+## Event schemas
+
+Pool events are phantom-typed as `Name<Share, Currency>`, use `address` for
+object identities, and report the post-state suffix
+`(pool_balance_after: u64, staked_shares_after: u64,
+cumulative_reward_per_share_after: u256, carry_after: u128,
+cumulative_deposits_after: u128)`. The event-specific fields are:
+
+- `RoyaltyPoolCreatedEvent`: `pool_id`, `parent_id`, `precision`.
+- `RoyaltyPoolSharedEvent`: `pool_id`.
+- `RoyaltyDepositedEvent`: `pool_id`, `value`,
+  `cumulative_reward_per_share_before`, `carry_before`.
+- `RoyaltyPoolFundsSettledEvent`: `pool_id`, `source_address`,
+  `accumulator_root_id`, `value`; it is emitted only after a positive
+  settlement, after the authoritative `RoyaltyDepositedEvent`.
+- `RoyaltyPoolCoinsRecoveredEvent`: `pool_id`, ordered `coin_ids`,
+  `coin_count`, `funds_recipient`, `value`; it is emitted for every nonempty
+  recovery input, including nonempty zero-value coins, and never for an empty
+  vector.
+- `StakeRegisteredEvent`: `pool_id`, `stake_id`, `staked_amount`,
+  `registration_debt_after`, `stake_registration_count_after`.
+- `StakeUnregisteredEvent`: `pool_id`, `stake_id`, `unstaked_amount`,
+  `removed_registration_debt`, `forfeited_reward_numerator`,
+  `stake_registration_count_after`.
+- `RoyaltyClaimedEvent`: `pool_id`, `stake_id`, `staked_amount`,
+  `reward_amount`, `registration_debt_before`, `registration_debt_after`,
+  `reward_residue_after`, `stake_registration_count_after` (including zero
+  reward claims).
+
+Stake lifecycle events are phantom-typed only by `Share`:
+`StakeCreatedEvent` includes `stake_id`, `transaction_sender`, `amount`, and
+`registration_count_after`; `StakeDestroyedEvent` includes `stake_id`,
+`amount`, and `registration_count_before`. Read-only views emit nothing.
+
 ## License
 
 Apache-2.0

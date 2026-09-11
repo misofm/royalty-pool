@@ -56,13 +56,16 @@ public struct Registration has copy, drop, store {
 // === Events ===
 
 public struct StakeCreatedEvent<phantom Share> has copy, drop {
-    stake_id: ID,
+    stake_id: address,
+    transaction_sender: address,
     amount: u64,
+    registration_count_after: u64,
 }
 
 public struct StakeDestroyedEvent<phantom Share> has copy, drop {
-    stake_id: ID,
+    stake_id: address,
     amount: u64,
+    registration_count_before: u64,
 }
 
 // === Public Functions ===
@@ -80,8 +83,10 @@ public fun new<Share>(balance: Balance<Share>, ctx: &mut TxContext): Stake<Share
     };
 
     emit(StakeCreatedEvent<Share> {
-        stake_id: object::id(&stake),
+        stake_id: object::id(&stake).to_address(),
+        transaction_sender: tx_context::sender(ctx),
         amount: stake.value(),
+        registration_count_after: stake.registration_count(),
     });
 
     stake
@@ -94,14 +99,19 @@ public fun destroy<Share>(stake: Stake<Share>): Balance<Share> {
     let Stake { id, balance, registrations } = stake;
 
     assert!(registrations.is_empty(), EPoolsRegistered);
+    let stake_id = id.to_inner().to_address();
+    let amount = balance.value();
+    let registration_count_before = registrations.length();
     registrations.destroy_empty();
 
+    id.delete();
+
     emit(StakeDestroyedEvent<Share> {
-        stake_id: id.to_inner(),
-        amount: balance.value(),
+        stake_id,
+        amount,
+        registration_count_before,
     });
 
-    id.delete();
     balance
 }
 
@@ -185,11 +195,15 @@ public(package) fun add_debt(r: &mut Registration, amount: u256) {
 // module-private and carry no other public reader.
 
 #[test_only]
-public fun created_event_fields<Share>(event: &StakeCreatedEvent<Share>): (ID, u64) {
-    (event.stake_id, event.amount)
+public fun created_event_fields<Share>(
+    event: &StakeCreatedEvent<Share>,
+): (address, address, u64, u64) {
+    (event.stake_id, event.transaction_sender, event.amount, event.registration_count_after)
 }
 
 #[test_only]
-public fun destroyed_event_fields<Share>(event: &StakeDestroyedEvent<Share>): (ID, u64) {
-    (event.stake_id, event.amount)
+public fun destroyed_event_fields<Share>(
+    event: &StakeDestroyedEvent<Share>,
+): (address, u64, u64) {
+    (event.stake_id, event.amount, event.registration_count_before)
 }

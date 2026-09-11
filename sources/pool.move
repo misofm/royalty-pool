@@ -129,38 +129,105 @@ public struct RoyaltyPoolKey<phantom Share, phantom Currency>() has copy, drop, 
 // === Events ===
 
 public struct RoyaltyPoolCreatedEvent<phantom Share, phantom Currency> has copy, drop {
-    pool_id: ID,
-    parent_id: ID,
+    pool_id: address,
+    parent_id: address,
+    precision: u128,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
+}
+
+public struct RoyaltyPoolSharedEvent<phantom Share, phantom Currency> has copy, drop {
+    pool_id: address,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
 }
 
 public struct RoyaltyDepositedEvent<phantom Share, phantom Currency> has copy, drop {
-    pool_id: ID,
+    pool_id: address,
     value: u64,
+    cumulative_reward_per_share_before: u256,
+    carry_before: u128,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
 }
 
-/// Emitted by `recover_coins` when it converts a positive value. Not
-/// emitted for an empty vector — nothing happened.
-public struct CoinsRecoveredEvent<phantom Share, phantom Currency> has copy, drop {
-    pool_id: ID,
+public struct RoyaltyPoolFundsSettledEvent<phantom Share, phantom Currency> has copy, drop {
+    pool_id: address,
+    source_address: address,
+    accumulator_root_id: address,
     value: u64,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
+}
+
+/// Emitted by `recover_coins` for every nonempty input vector, including
+/// vectors whose coins sum to zero.
+public struct RoyaltyPoolCoinsRecoveredEvent<phantom Share, phantom Currency> has copy, drop {
+    pool_id: address,
+    coin_ids: vector<address>,
+    coin_count: u64,
+    funds_recipient: address,
+    value: u64,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
 }
 
 public struct StakeRegisteredEvent<phantom Share, phantom Currency> has copy, drop {
-    pool_id: ID,
-    stake_id: ID,
+    pool_id: address,
+    stake_id: address,
     staked_amount: u64,
+    registration_debt_after: u256,
+    stake_registration_count_after: u64,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
 }
 
 public struct StakeUnregisteredEvent<phantom Share, phantom Currency> has copy, drop {
-    pool_id: ID,
-    stake_id: ID,
+    pool_id: address,
+    stake_id: address,
     unstaked_amount: u64,
+    removed_registration_debt: u256,
+    forfeited_reward_numerator: u256,
+    stake_registration_count_after: u64,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
 }
 
 public struct RoyaltyClaimedEvent<phantom Share, phantom Currency> has copy, drop {
-    pool_id: ID,
-    stake_id: ID,
+    pool_id: address,
+    stake_id: address,
+    staked_amount: u64,
     reward_amount: u64,
+    registration_debt_before: u256,
+    registration_debt_after: u256,
+    reward_residue_after: u256,
+    stake_registration_count_after: u64,
+    pool_balance_after: u64,
+    staked_shares_after: u64,
+    cumulative_reward_per_share_after: u256,
+    carry_after: u128,
+    cumulative_deposits_after: u128,
 }
 
 // === Public Functions ===
@@ -184,8 +251,14 @@ public fun new<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> 
     };
 
     emit(RoyaltyPoolCreatedEvent<Share, Currency> {
-        pool_id: object::id(&pool),
-        parent_id,
+        pool_id: object::id(&pool).to_address(),
+        parent_id: parent_id.to_address(),
+        precision: PRECISION,
+        pool_balance_after: pool.balance.value(),
+        staked_shares_after: pool.staked_shares,
+        cumulative_reward_per_share_after: pool.cumulative_reward_per_share,
+        carry_after: pool.carry,
+        cumulative_deposits_after: pool.cumulative_deposits,
     });
 
     pool
@@ -193,7 +266,23 @@ public fun new<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> 
 
 /// Share the pool object so holders can register and claim against it.
 public fun share<Share, Currency>(self: RoyaltyPool<Share, Currency>) {
+    let pool_id = object::id(&self).to_address();
+    let pool_balance_after = self.balance.value();
+    let staked_shares_after = self.staked_shares;
+    let cumulative_reward_per_share_after = self.cumulative_reward_per_share;
+    let carry_after = self.carry;
+    let cumulative_deposits_after = self.cumulative_deposits;
+
     transfer::share_object(self);
+
+    emit(RoyaltyPoolSharedEvent<Share, Currency> {
+        pool_id,
+        pool_balance_after,
+        staked_shares_after,
+        cumulative_reward_per_share_after,
+        carry_after,
+        cumulative_deposits_after,
+    });
 }
 
 /// Fold a balance into the accumulator. Aborts on zero staked shares (the
@@ -211,6 +300,9 @@ public fun deposit<Share, Currency>(
 
     let value = balance.value();
     assert!(value > 0, EInvalidValue);
+    let pool_id = object::id(self).to_address();
+    let cumulative_reward_per_share_before = self.cumulative_reward_per_share;
+    let carry_before = self.carry;
 
     // value · PRECISION + carry < 2^64 · 10^18 + 2^64: fits u128.
     let numerator = (value as u128) * PRECISION + self.carry;
@@ -222,8 +314,15 @@ public fun deposit<Share, Currency>(
     self.balance.join(balance);
 
     emit(RoyaltyDepositedEvent<Share, Currency> {
-        pool_id: object::id(self),
+        pool_id,
         value,
+        cumulative_reward_per_share_before,
+        carry_before,
+        pool_balance_after: self.balance.value(),
+        staked_shares_after: self.staked_shares,
+        cumulative_reward_per_share_after: self.cumulative_reward_per_share,
+        carry_after: self.carry,
+        cumulative_deposits_after: self.cumulative_deposits,
     });
 }
 
@@ -243,6 +342,17 @@ public fun settle<Share, Currency>(self: &mut RoyaltyPool<Share, Currency>, root
 
     let value = balance.value();
     self.deposit(balance);
+    emit(RoyaltyPoolFundsSettledEvent<Share, Currency> {
+        pool_id: object::id(self).to_address(),
+        source_address: object::id(self).to_address(),
+        accumulator_root_id: object::id(root).to_address(),
+        value,
+        pool_balance_after: self.balance.value(),
+        staked_shares_after: self.staked_shares,
+        cumulative_reward_per_share_after: self.cumulative_reward_per_share,
+        carry_after: self.carry,
+        cumulative_deposits_after: self.cumulative_deposits,
+    });
     value
 }
 
@@ -254,11 +364,26 @@ public fun recover_coins<Share, Currency>(
     coins: vector<Receiving<Coin<Currency>>>,
 ): u64 {
     let pool_address = self.id.to_address();
+    let mut coin_ids = vector[];
+    let mut i = 0;
+    while (i < coins.length()) {
+        coin_ids.push_back(transfer::receiving_object_id(&coins[i]).to_address());
+        i = i + 1;
+    };
+    let coin_count = coin_ids.length();
     let value = hikida::receive_coins_and_send_funds(&mut self.id, coins, pool_address);
-    if (value > 0) {
-        emit(CoinsRecoveredEvent<Share, Currency> {
-            pool_id: object::id(self),
+    if (coin_count > 0) {
+        emit(RoyaltyPoolCoinsRecoveredEvent<Share, Currency> {
+            pool_id: object::id(self).to_address(),
+            coin_ids,
+            coin_count,
+            funds_recipient: pool_address,
             value,
+            pool_balance_after: self.balance.value(),
+            staked_shares_after: self.staked_shares,
+            cumulative_reward_per_share_after: self.cumulative_reward_per_share,
+            carry_after: self.carry,
+            cumulative_deposits_after: self.cumulative_deposits,
         });
     };
     value
@@ -276,7 +401,7 @@ public fun register_stake<Share, Currency>(
     assert!(!stake.has_registration(&currency), EAlreadyRegistered);
 
     let pool_id = object::id(self);
-    let stake_id = object::id(stake);
+    let stake_id = object::id(stake).to_address();
     let staked_amount = stake.value();
     let debt = (staked_amount as u256) * self.cumulative_reward_per_share;
 
@@ -284,9 +409,16 @@ public fun register_stake<Share, Currency>(
     self.staked_shares = self.staked_shares + staked_amount;
 
     emit(StakeRegisteredEvent<Share, Currency> {
-        pool_id,
+        pool_id: pool_id.to_address(),
         stake_id,
         staked_amount,
+        registration_debt_after: debt,
+        stake_registration_count_after: stake.registration_count(),
+        pool_balance_after: self.balance.value(),
+        staked_shares_after: self.staked_shares,
+        cumulative_reward_per_share_after: self.cumulative_reward_per_share,
+        carry_after: self.carry,
+        cumulative_deposits_after: self.cumulative_deposits,
     });
 }
 
@@ -303,7 +435,7 @@ public fun unregister_stake<Share, Currency>(
     assert!(stake.has_registration(&currency), ENotRegistered);
 
     let pool_id = object::id(self);
-    let stake_id = object::id(stake);
+    let stake_id = object::id(stake).to_address();
     let staked_amount = stake.value();
     let cumulative = self.cumulative_reward_per_share;
 
@@ -313,14 +445,24 @@ public fun unregister_stake<Share, Currency>(
         calculate_reward(staked_amount, stake::registration_debt(registration), cumulative) == 0,
         ELastClaimIndexMismatch,
     );
+    let removed_registration_debt = stake::registration_debt(registration);
+    let forfeited_reward_numerator = (staked_amount as u256) * cumulative - removed_registration_debt;
 
     stake.remove_registration(&currency);
     self.staked_shares = self.staked_shares - staked_amount;
 
     emit(StakeUnregisteredEvent<Share, Currency> {
-        pool_id,
+        pool_id: pool_id.to_address(),
         stake_id,
         unstaked_amount: staked_amount,
+        removed_registration_debt,
+        forfeited_reward_numerator,
+        stake_registration_count_after: stake.registration_count(),
+        pool_balance_after: self.balance.value(),
+        staked_shares_after: self.staked_shares,
+        cumulative_reward_per_share_after: self.cumulative_reward_per_share,
+        carry_after: self.carry,
+        cumulative_deposits_after: self.cumulative_deposits,
     });
 }
 
@@ -334,24 +476,45 @@ public fun claim_rewards<Share, Currency>(
     assert!(stake.has_registration(&currency), ENotRegistered);
 
     let pool_id = object::id(self);
-    let stake_id = object::id(stake);
+    let stake_id = object::id(stake).to_address();
     let staked_amount = stake.value();
     let cumulative = self.cumulative_reward_per_share;
 
-    let registration = stake.registration_mut(&currency);
-    assert!(stake::registration_pool_id(registration) == pool_id, EPoolIdMismatch);
+    let registration_debt_before;
+    {
+        let registration = stake.get_registration(&currency);
+        assert!(stake::registration_pool_id(registration) == pool_id, EPoolIdMismatch);
+        registration_debt_before = stake::registration_debt(registration);
+    };
 
-    let reward_amount =
-        calculate_reward(staked_amount, stake::registration_debt(registration), cumulative);
-    stake::add_debt(registration, (reward_amount as u256) * (PRECISION as u256));
+    let reward_amount = calculate_reward(staked_amount, registration_debt_before, cumulative);
+    {
+        let registration = stake.registration_mut(&currency);
+        stake::add_debt(registration, (reward_amount as u256) * (PRECISION as u256));
+    };
+
+    let reward = self.balance.split(reward_amount);
+    let registration_debt_after = stake::registration_debt(stake.get_registration(&currency));
+    let reward_residue_after = (staked_amount as u256) * cumulative - registration_debt_after;
+    let stake_registration_count_after = stake.registration_count();
 
     emit(RoyaltyClaimedEvent<Share, Currency> {
-        pool_id,
+        pool_id: pool_id.to_address(),
         stake_id,
         reward_amount,
+        staked_amount,
+        registration_debt_before,
+        registration_debt_after,
+        reward_residue_after,
+        stake_registration_count_after,
+        pool_balance_after: self.balance.value(),
+        staked_shares_after: self.staked_shares,
+        cumulative_reward_per_share_after: self.cumulative_reward_per_share,
+        carry_after: self.carry,
+        cumulative_deposits_after: self.cumulative_deposits,
     });
 
-    self.balance.split(reward_amount)
+    reward
 }
 
 // === View Functions ===
@@ -450,41 +613,139 @@ fun calculate_reward(staked_amount: u64, debt: u256, index: u256): u64 {
 #[test_only]
 public fun created_event_fields<Share, Currency>(
     event: &RoyaltyPoolCreatedEvent<Share, Currency>,
-): (ID, ID) {
-    (event.pool_id, event.parent_id)
+): (address, address, u128, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.parent_id,
+        event.precision,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
+}
+
+#[test_only]
+public fun shared_event_fields<Share, Currency>(
+    event: &RoyaltyPoolSharedEvent<Share, Currency>,
+): (address, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
 }
 
 #[test_only]
 public fun deposited_event_fields<Share, Currency>(
     event: &RoyaltyDepositedEvent<Share, Currency>,
-): (ID, u64) {
-    (event.pool_id, event.value)
+): (address, u64, u256, u128, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.value,
+        event.cumulative_reward_per_share_before,
+        event.carry_before,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
+}
+
+#[test_only]
+public fun funds_settled_event_fields<Share, Currency>(
+    event: &RoyaltyPoolFundsSettledEvent<Share, Currency>,
+): (address, address, address, u64, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.source_address,
+        event.accumulator_root_id,
+        event.value,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
 }
 
 #[test_only]
 public fun coins_recovered_event_fields<Share, Currency>(
-    event: &CoinsRecoveredEvent<Share, Currency>,
-): (ID, u64) {
-    (event.pool_id, event.value)
+    event: &RoyaltyPoolCoinsRecoveredEvent<Share, Currency>,
+): (address, vector<address>, u64, address, u64, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.coin_ids,
+        event.coin_count,
+        event.funds_recipient,
+        event.value,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
 }
 
 #[test_only]
 public fun stake_registered_event_fields<Share, Currency>(
     event: &StakeRegisteredEvent<Share, Currency>,
-): (ID, ID, u64) {
-    (event.pool_id, event.stake_id, event.staked_amount)
+): (address, address, u64, u256, u64, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.stake_id,
+        event.staked_amount,
+        event.registration_debt_after,
+        event.stake_registration_count_after,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
 }
 
 #[test_only]
 public fun stake_unregistered_event_fields<Share, Currency>(
     event: &StakeUnregisteredEvent<Share, Currency>,
-): (ID, ID, u64) {
-    (event.pool_id, event.stake_id, event.unstaked_amount)
+): (address, address, u64, u256, u256, u64, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.stake_id,
+        event.unstaked_amount,
+        event.removed_registration_debt,
+        event.forfeited_reward_numerator,
+        event.stake_registration_count_after,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
 }
 
 #[test_only]
 public fun royalty_claimed_event_fields<Share, Currency>(
     event: &RoyaltyClaimedEvent<Share, Currency>,
-): (ID, ID, u64) {
-    (event.pool_id, event.stake_id, event.reward_amount)
+): (address, address, u64, u64, u256, u256, u256, u64, u64, u64, u256, u128, u128) {
+    (
+        event.pool_id,
+        event.stake_id,
+        event.staked_amount,
+        event.reward_amount,
+        event.registration_debt_before,
+        event.registration_debt_after,
+        event.reward_residue_after,
+        event.stake_registration_count_after,
+        event.pool_balance_after,
+        event.staked_shares_after,
+        event.cumulative_reward_per_share_after,
+        event.carry_after,
+        event.cumulative_deposits_after,
+    )
 }
