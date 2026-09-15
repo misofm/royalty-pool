@@ -51,7 +51,6 @@ cumulative_reward_per_share_after: u256, carry_after: u128,
 cumulative_deposits_after: u128)`. The event-specific fields are:
 
 - `RoyaltyPoolCreatedEvent`: `pool_id`, `parent_id`, `precision`.
-- `RoyaltyPoolSharedEvent`: `pool_id`.
 - `RoyaltyDepositedEvent`: `pool_id`, `value`,
   `cumulative_reward_per_share_before`, `carry_before`.
 - `RoyaltyPoolFundsSettledEvent`: `pool_id`, `source_address`,
@@ -80,3 +79,5 @@ Stake lifecycle events are phantom-typed only by `Share`:
 ## License
 
 Apache-2.0
+
+Pool construction emits `RoyaltyPoolCreatedEvent` once with parent identity and initial accounting state. Sharing is silent; registration and deposits retain their own state-bearing events, including when performed before sharing.

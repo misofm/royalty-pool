@@ -139,15 +139,6 @@ public struct RoyaltyPoolCreatedEvent<phantom Share, phantom Currency> has copy,
     cumulative_deposits_after: u128,
 }
 
-public struct RoyaltyPoolSharedEvent<phantom Share, phantom Currency> has copy, drop {
-    pool_id: address,
-    pool_balance_after: u64,
-    staked_shares_after: u64,
-    cumulative_reward_per_share_after: u256,
-    carry_after: u128,
-    cumulative_deposits_after: u128,
-}
-
 public struct RoyaltyDepositedEvent<phantom Share, phantom Currency> has copy, drop {
     pool_id: address,
     value: u64,
@@ -266,23 +257,7 @@ public fun new<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> 
 
 /// Share the pool object so holders can register and claim against it.
 public fun share<Share, Currency>(self: RoyaltyPool<Share, Currency>) {
-    let pool_id = object::id(&self).to_address();
-    let pool_balance_after = self.balance.value();
-    let staked_shares_after = self.staked_shares;
-    let cumulative_reward_per_share_after = self.cumulative_reward_per_share;
-    let carry_after = self.carry;
-    let cumulative_deposits_after = self.cumulative_deposits;
-
     transfer::share_object(self);
-
-    emit(RoyaltyPoolSharedEvent<Share, Currency> {
-        pool_id,
-        pool_balance_after,
-        staked_shares_after,
-        cumulative_reward_per_share_after,
-        carry_after,
-        cumulative_deposits_after,
-    });
 }
 
 /// Fold a balance into the accumulator. Aborts on zero staked shares (the
@@ -620,20 +595,6 @@ public fun created_event_fields<Share, Currency>(
         event.pool_id,
         event.parent_id,
         event.precision,
-        event.pool_balance_after,
-        event.staked_shares_after,
-        event.cumulative_reward_per_share_after,
-        event.carry_after,
-        event.cumulative_deposits_after,
-    )
-}
-
-#[test_only]
-public fun shared_event_fields<Share, Currency>(
-    event: &RoyaltyPoolSharedEvent<Share, Currency>,
-): (address, u64, u64, u256, u128, u128) {
-    (
-        event.pool_id,
         event.pool_balance_after,
         event.staked_shares_after,
         event.cumulative_reward_per_share_after,
