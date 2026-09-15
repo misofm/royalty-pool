@@ -887,10 +887,9 @@ fun test_recover_coins_converts_without_depositing() {
 
     let recovered = event::events_by_type<RoyaltyPoolCoinsRecoveredEvent<TEST_SHARE, TEST_CURRENCY>>();
     assert_eq!(recovered.length(), 1);
-    let (event_pool_id, event_coin_ids, event_count, event_recipient, event_value, event_balance, event_shares, event_index, event_carry, event_deposits) =
+    let (event_pool_id, event_count, event_recipient, event_value, event_balance, event_shares, event_index, event_carry, event_deposits) =
         pool::coins_recovered_event_fields(&recovered[0]);
     assert_eq!(event_pool_id, pool_id.to_address());
-    assert_eq!(event_coin_ids, vector[coin_id.to_address()]);
     assert_eq!(event_count, 1);
     assert_eq!(event_recipient, pool_id.to_address());
     assert_eq!(event_value, 500);
@@ -958,10 +957,9 @@ fun test_recover_coins_nonempty_zero_value_emits_event() {
     assert_eq!(pool.recover_coins(vector[ticket]), 0);
     let recovered = event::events_by_type<RoyaltyPoolCoinsRecoveredEvent<TEST_SHARE, TEST_CURRENCY>>();
     assert_eq!(recovered.length(), 1);
-    let (event_pool_id, ids, count, recipient, value, balance, shares, index, carry, deposits) =
+    let (event_pool_id, count, recipient, value, balance, shares, index, carry, deposits) =
         pool::coins_recovered_event_fields(&recovered[0]);
     assert_eq!(event_pool_id, pool_id.to_address());
-    assert_eq!(ids, vector[coin_id.to_address()]);
     assert_eq!(count, 1);
     assert_eq!(recipient, pool_id.to_address());
     assert_eq!(value, 0);
@@ -1002,9 +1000,8 @@ fun test_recover_coins_batch_preserves_ids_and_consumes_coins() {
     assert_eq!(pool.recover_coins(vector[ticket_a, ticket_b]), 300);
     let recovered = event::events_by_type<RoyaltyPoolCoinsRecoveredEvent<TEST_SHARE, TEST_CURRENCY>>();
     assert_eq!(recovered.length(), 1);
-    let (_, ids, count, _, value, _, _, _, _, _) =
+    let (_, count, _, value, _, _, _, _, _) =
         pool::coins_recovered_event_fields(&recovered[0]);
-    assert_eq!(ids, vector[id_a.to_address(), id_b.to_address()]);
     assert_eq!(count, 2);
     assert_eq!(value, 300);
     test_scenario::return_shared(pool);

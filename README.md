@@ -81,3 +81,6 @@ Stake lifecycle events are phantom-typed only by `Share`:
 Apache-2.0
 
 Pool construction emits `RoyaltyPoolCreatedEvent` once with parent identity and initial accounting state. Sharing is silent; registration and deposits retain their own state-bearing events, including when performed before sharing.
+
+Coin-receipt events retain the consumed coin count, amounts and business identities.
+They do not duplicate a variable-length list of input coin IDs; transaction inputs/effects provide that provenance when needed.
