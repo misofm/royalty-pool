@@ -498,21 +498,23 @@ public fun claim_rewards<Share, Currency>(
     let reward_residue_after = (staked_amount as u256) * cumulative - registration_debt_after;
     let stake_registration_count_after = stake.registration_count();
 
-    emit(RoyaltyClaimedEvent<Share, Currency> {
-        pool_id: pool_id.to_address(),
-        stake_id,
-        reward_amount,
-        staked_amount,
-        registration_debt_before,
-        registration_debt_after,
-        reward_residue_after,
-        stake_registration_count_after,
-        pool_balance_after: self.balance.value(),
-        staked_shares_after: self.staked_shares,
-        cumulative_reward_per_share_after: self.cumulative_reward_per_share,
-        carry_after: self.carry,
-        cumulative_deposits_after: self.cumulative_deposits,
-    });
+    if (reward_amount > 0) {
+        emit(RoyaltyClaimedEvent<Share, Currency> {
+            pool_id: pool_id.to_address(),
+            stake_id,
+            reward_amount,
+            staked_amount,
+            registration_debt_before,
+            registration_debt_after,
+            reward_residue_after,
+            stake_registration_count_after,
+            pool_balance_after: self.balance.value(),
+            staked_shares_after: self.staked_shares,
+            cumulative_reward_per_share_after: self.cumulative_reward_per_share,
+            carry_after: self.carry,
+            cumulative_deposits_after: self.cumulative_deposits,
+        });
+    };
 
     reward
 }

@@ -229,6 +229,7 @@ fun test_claim_twice_second_yields_zero() {
     let r2 = pool.claim_rewards(&mut s);
     assert!(r1.value() == 500);
     assert!(r2.value() == 0);
+    assert_eq!(event::events_by_type<RoyaltyClaimedEvent<TEST_SHARE, TEST_CURRENCY>>().length(), 1);
     pool.unregister_stake(&mut s);
     test_scenario::return_shared(pool);
 
@@ -752,10 +753,10 @@ fun test_sole_staker_indivisible_deposit_pays_exact_floor() {
     assert_eq!(pool.pending_rewards(&s), 0);
 
     let claims = event::events_by_type<RoyaltyClaimedEvent<TEST_SHARE, TEST_CURRENCY>>();
-    assert_eq!(claims.length(), 2);
+    assert_eq!(claims.length(), 1);
     let (_, _, _, amount, _, _, residue, count, bal, shares, index, carry, deposits) =
-        pool::royalty_claimed_event_fields(&claims[1]);
-    assert_eq!(amount, 0);
+        pool::royalty_claimed_event_fields(&claims[0]);
+    assert_eq!(amount, 1);
     assert_eq!(residue, 999_999_999_999_999_998);
     assert_eq!(count, 1);
     assert_eq!(bal, 1);

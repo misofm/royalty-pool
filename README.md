@@ -68,8 +68,9 @@ cumulative_deposits_after: u128)`. The event-specific fields are:
   `stake_registration_count_after`.
 - `RoyaltyClaimedEvent`: `pool_id`, `stake_id`, `staked_amount`,
   `reward_amount`, `registration_debt_before`, `registration_debt_after`,
-  `reward_residue_after`, `stake_registration_count_after` (including zero
-  reward claims).
+  `reward_residue_after`, `stake_registration_count_after` (positive reward
+  claims only; zero reward claims still advance debt and return a zero
+  balance silently).
 
 Stake lifecycle events are phantom-typed only by `Share`:
 `StakeCreatedEvent` includes `stake_id`, `transaction_sender`, `amount`, and
