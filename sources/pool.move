@@ -167,7 +167,6 @@ public struct RoyaltyPoolFundsSettledEvent<phantom Share, phantom Currency> has 
 /// vectors whose coins sum to zero.
 public struct RoyaltyPoolCoinsRecoveredEvent<phantom Share, phantom Currency> has copy, drop {
     pool_id: address,
-    coin_ids: vector<address>,
     coin_count: u64,
     funds_recipient: address,
     value: u64,
@@ -339,18 +338,11 @@ public fun recover_coins<Share, Currency>(
     coins: vector<Receiving<Coin<Currency>>>,
 ): u64 {
     let pool_address = self.id.to_address();
-    let mut coin_ids = vector[];
-    let mut i = 0;
-    while (i < coins.length()) {
-        coin_ids.push_back(transfer::receiving_object_id(&coins[i]).to_address());
-        i = i + 1;
-    };
-    let coin_count = coin_ids.length();
+    let coin_count = coins.length();
     let value = hikida::receive_coins_and_send_funds(&mut self.id, coins, pool_address);
     if (coin_count > 0) {
         emit(RoyaltyPoolCoinsRecoveredEvent<Share, Currency> {
             pool_id: object::id(self).to_address(),
-            coin_ids,
             coin_count,
             funds_recipient: pool_address,
             value,
@@ -640,10 +632,9 @@ public fun funds_settled_event_fields<Share, Currency>(
 #[test_only]
 public fun coins_recovered_event_fields<Share, Currency>(
     event: &RoyaltyPoolCoinsRecoveredEvent<Share, Currency>,
-): (address, vector<address>, u64, address, u64, u64, u64, u256, u128, u128) {
+): (address, u64, address, u64, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
-        event.coin_ids,
         event.coin_count,
         event.funds_recipient,
         event.value,

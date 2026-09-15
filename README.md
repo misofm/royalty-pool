@@ -56,7 +56,7 @@ cumulative_deposits_after: u128)`. The event-specific fields are:
 - `RoyaltyPoolFundsSettledEvent`: `pool_id`, `source_address`,
   `accumulator_root_id`, `value`; it is emitted only after a positive
   settlement, after the authoritative `RoyaltyDepositedEvent`.
-- `RoyaltyPoolCoinsRecoveredEvent`: `pool_id`, ordered `coin_ids`,
+- `RoyaltyPoolCoinsRecoveredEvent`: `pool_id`,
   `coin_count`, `funds_recipient`, `value`; it is emitted for every nonempty
   recovery input, including nonempty zero-value coins, and never for an empty
   vector.
@@ -81,3 +81,6 @@ Stake lifecycle events are phantom-typed only by `Share`:
 Apache-2.0
 
 Pool construction emits `RoyaltyPoolCreatedEvent` once with parent identity and initial accounting state. Sharing is silent; registration and deposits retain their own state-bearing events, including when performed before sharing.
+
+Coin-receipt events retain the consumed coin count, amounts and business identities.
+They do not duplicate a variable-length list of input coin IDs; transaction inputs/effects provide that provenance when needed.
