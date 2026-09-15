@@ -56,7 +56,7 @@ cumulative_deposits_after: u128)`. The event-specific fields are:
 - `RoyaltyPoolFundsSettledEvent`: `pool_id`, `source_address`,
   `accumulator_root_id`, `value`; it is emitted only after a positive
   settlement, after the authoritative `RoyaltyDepositedEvent`.
-- `RoyaltyPoolCoinsRecoveredEvent`: `pool_id`, ordered `coin_ids`,
+- `RoyaltyPoolCoinsRecoveredEvent`: `pool_id`, `coin_count`,
   `coin_count`, `funds_recipient`, `value`; it is emitted for every nonempty
   recovery input, including nonempty zero-value coins, and never for an empty
   vector.
