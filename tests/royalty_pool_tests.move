@@ -8,7 +8,6 @@ use royalty_pool::pool::{
     Self,
     RoyaltyPool,
     RoyaltyPoolCreatedEvent,
-    RoyaltyPoolSharedEvent,
     RoyaltyDepositedEvent,
     RoyaltyPoolFundsSettledEvent,
     RoyaltyPoolCoinsRecoveredEvent,
@@ -554,9 +553,8 @@ fun test_derived_address_matches_pool_address() {
 }
 
 #[test]
-/// Sharing itself preserves the pre-share pool state in its event. This also
-/// pins that an owned pool can be registered and funded before sharing.
-fun test_shared_event_reports_pre_share_snapshot() {
+/// Sharing is silent and preserves an owned pool registered and funded before sharing.
+fun test_sharing_is_silent_and_preserves_pre_share_state() {
     let mut scenario = test_scenario::begin(ALICE);
     scenario.next_tx(ALICE);
     let mut parent = object::new(scenario.ctx());
@@ -565,21 +563,16 @@ fun test_shared_event_reports_pre_share_snapshot() {
     let mut s = new_stake(&mut scenario, 100);
     pool.register_stake(&mut s);
     pool.deposit(balance::create_for_testing<TEST_CURRENCY>(250));
+    let event_count = event::num_events();
     pool.share();
-    let shared = event::events_by_type<RoyaltyPoolSharedEvent<TEST_SHARE, TEST_CURRENCY>>();
-    assert_eq!(shared.length(), 1);
-    let (event_pool_id, event_balance, event_shares, event_index, event_carry, event_deposits) =
-        pool::shared_event_fields(&shared[0]);
-    assert_eq!(event_pool_id, pool_id.to_address());
-    assert_eq!(event_balance, 250);
-    assert_eq!(event_shares, 100);
-    assert_eq!(event_index, 2_500_000_000_000_000_000);
-    assert_eq!(event_carry, 0);
-    assert_eq!(event_deposits, 250);
+    assert_eq!(event::num_events(), event_count);
+    let created = event::events_by_type<RoyaltyPoolCreatedEvent<TEST_SHARE, TEST_CURRENCY>>();
+    assert_eq!(created.length(), 1);
     destroy(parent);
     scenario.next_tx(ALICE);
     let mut pool = take_pool(&scenario, pool_id);
     let reward = pool.claim_rewards(&mut s);
+    assert_eq!(reward.value(), 250);
     pool.unregister_stake(&mut s);
     test_scenario::return_shared(pool);
     balance::destroy_for_testing(stake::destroy(s));
