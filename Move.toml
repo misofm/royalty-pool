@@ -6,4 +6,4 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 
 [dependencies]
 hikida = { git = "https://github.com/unconfirmedlabs/hikida.git", rev = "c91d6a0f536a5f1457b342a8838fc1d7ba09212e" }
-share = { git = "https://github.com/misofm/share.git", rev = "4778e59a2b166a62a92a5fd34b8be7f0f2550d0a" }
+share = { git = "https://github.com/misofm/share.git", rev = "d6ce1a77070df6de8eb84406487bb57c5ae868d5" }
