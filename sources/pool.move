@@ -156,6 +156,8 @@ public struct RoyaltyPoolFundsSettledEvent<phantom Share, phantom Currency> has 
     source_address: address,
     accumulator_root_id: address,
     value: u64,
+    cumulative_reward_per_share_before: u256,
+    carry_before: u128,
     pool_balance_after: u64,
     staked_shares_after: u64,
     cumulative_reward_per_share_after: u256,
@@ -270,22 +272,11 @@ public fun deposit<Share, Currency>(
     self: &mut RoyaltyPool<Share, Currency>,
     balance: Balance<Currency>,
 ) {
-    assert!(self.staked_shares > 0, ENoStakedShares);
-
     let value = balance.value();
-    assert!(value > 0, EInvalidValue);
     let pool_id = object::id(self).to_address();
     let cumulative_reward_per_share_before = self.cumulative_reward_per_share;
     let carry_before = self.carry;
-
-    // value · PRECISION + carry < 2^64 · 10^18 + 2^64: fits u128.
-    let numerator = (value as u128) * PRECISION + self.carry;
-    let staked_shares = self.staked_shares as u128;
-    self.cumulative_reward_per_share =
-        self.cumulative_reward_per_share + ((numerator / staked_shares) as u256);
-    self.carry = numerator % staked_shares;
-    self.cumulative_deposits = self.cumulative_deposits + (value as u128);
-    self.balance.join(balance);
+    self.deposit_balance(balance);
 
     emit(RoyaltyDepositedEvent<Share, Currency> {
         pool_id,
@@ -315,12 +306,16 @@ public fun settle<Share, Currency>(self: &mut RoyaltyPool<Share, Currency>, root
     };
 
     let value = balance.value();
-    self.deposit(balance);
+    let cumulative_reward_per_share_before = self.cumulative_reward_per_share;
+    let carry_before = self.carry;
+    self.deposit_balance(balance);
     emit(RoyaltyPoolFundsSettledEvent<Share, Currency> {
         pool_id: object::id(self).to_address(),
         source_address: object::id(self).to_address(),
         accumulator_root_id: object::id(root).to_address(),
         value,
+        cumulative_reward_per_share_before,
+        carry_before,
         pool_balance_after: self.balance.value(),
         staked_shares_after: self.staked_shares,
         cumulative_reward_per_share_after: self.cumulative_reward_per_share,
@@ -567,6 +562,28 @@ public fun assert_derived_from<Share, Currency>(
 
 // === Private Functions ===
 
+/// Apply one positive deposit to a nonempty pool without selecting an event
+/// schema. Public `deposit` and accumulator `settle` each emit their own
+/// mutually exclusive canonical receipt after this shared accounting path.
+fun deposit_balance<Share, Currency>(
+    self: &mut RoyaltyPool<Share, Currency>,
+    balance: Balance<Currency>,
+) {
+    assert!(self.staked_shares > 0, ENoStakedShares);
+
+    let value = balance.value();
+    assert!(value > 0, EInvalidValue);
+
+    // value · PRECISION + carry < 2^64 · 10^18 + 2^64: fits u128.
+    let numerator = (value as u128) * PRECISION + self.carry;
+    let staked_shares = self.staked_shares as u128;
+    self.cumulative_reward_per_share =
+        self.cumulative_reward_per_share + ((numerator / staked_shares) as u256);
+    self.carry = numerator % staked_shares;
+    self.cumulative_deposits = self.cumulative_deposits + (value as u128);
+    self.balance.join(balance);
+}
+
 /// `⌊(shares · index − debt) / PRECISION⌋`. The subtraction cannot underflow
 /// (`debt ≤ shares · index` by construction) and the result is bounded by the
 /// pool balance (see the module doc), so the `u64` cast cannot truncate.
@@ -615,12 +632,14 @@ public fun deposited_event_fields<Share, Currency>(
 #[test_only]
 public fun funds_settled_event_fields<Share, Currency>(
     event: &RoyaltyPoolFundsSettledEvent<Share, Currency>,
-): (address, address, address, u64, u64, u64, u256, u128, u128) {
+): (address, address, address, u64, u256, u128, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
         event.source_address,
         event.accumulator_root_id,
         event.value,
+        event.cumulative_reward_per_share_before,
+        event.carry_before,
         event.pool_balance_after,
         event.staked_shares_after,
         event.cumulative_reward_per_share_after,

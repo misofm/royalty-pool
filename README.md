@@ -54,8 +54,8 @@ cumulative_deposits_after: u128)`. The event-specific fields are:
 - `RoyaltyDepositedEvent`: `pool_id`, `value`,
   `cumulative_reward_per_share_before`, `carry_before`.
 - `RoyaltyPoolFundsSettledEvent`: `pool_id`, `source_address`,
-  `accumulator_root_id`, `value`; it is emitted only after a positive
-  settlement, after the authoritative `RoyaltyDepositedEvent`.
+  `accumulator_root_id`, `value`, `cumulative_reward_per_share_before`,
+  `carry_before`; it is emitted only after a positive settlement.
 - `RoyaltyPoolCoinsRecoveredEvent`: `pool_id`,
   `coin_count`, `funds_recipient`, `value`; it is emitted for every nonempty
   recovery input, including nonempty zero-value coins, and never for an empty
@@ -75,6 +75,11 @@ Stake lifecycle events are phantom-typed only by `Share`:
 `StakeCreatedEvent` includes `stake_id`, `transaction_sender`, `amount`, and
 `registration_count_after`; `StakeDestroyedEvent` includes `stake_id`,
 `amount`, and `registration_count_before`. Read-only views emit nothing.
+
+`RoyaltyDepositedEvent` and `RoyaltyPoolFundsSettledEvent` are mutually
+exclusive accounting receipts. A direct balance deposit emits only the former;
+a successful accumulator settlement emits only the latter. Consumers must not
+sum framework accumulator effects as another pool deposit.
 
 ## License
 

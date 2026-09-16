@@ -805,6 +805,10 @@ fun test_rich_event_widths_across_nineteen_max_deposits() {
         pool.deposit(balance::create_for_testing<TEST_CURRENCY>(max));
         let deposits = event::events_by_type<RoyaltyDepositedEvent<TEST_SHARE, TEST_CURRENCY>>();
         assert_eq!(deposits.length(), 1);
+        assert_eq!(
+            event::events_by_type<RoyaltyPoolFundsSettledEvent<TEST_SHARE, TEST_CURRENCY>>().length(),
+            0,
+        );
         let (_, value, before, before_carry, balance, shares, index, carry, total) =
             pool::deposited_event_fields(&deposits[0]);
         let n = (i + 1) as u256;
