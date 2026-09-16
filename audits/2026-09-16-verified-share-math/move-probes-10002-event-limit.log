@@ -1,0 +1,31 @@
+[NOTE] Updating dependencies for `mainnet` environment because "./Move.toml" has been changed since the last update.
+INCLUDING DEPENDENCY MoveStdlib
+INCLUDING DEPENDENCY Sui
+INCLUDING DEPENDENCY hikida
+INCLUDING DEPENDENCY share
+BUILDING royalty_pool
+Running Move unit tests
+[ FAIL    ] royalty_pool::fresh_math_review::bounded_carry_can_accumulate_across_10002_voluntary_exits
+[ PASS    ] royalty_pool::fresh_math_review::full_supply_still_advances_by_10000_index_units_per_payout_unit
+
+Test failures:
+
+Failures in royalty_pool::fresh_math_review:
+
+┌── bounded_carry_can_accumulate_across_10002_voluntary_exits ──────
+│ error[EC11001]: test failure
+│    ┌─ /home/bl/.move/git/https___github_com_MystenLabs_sui_git_ae59d7718668b468ce65702ecb0440aa2330f389/crates/sui-framework/packages/sui-framework/sources/event.move:42:19
+│    │
+│ 42 │ public native fun emit<T: copy + drop>(event: T);
+│    │                   ^^^^
+│    │                   │
+│    │                   Test was not expected to error, but it gave a MEMORY_LIMIT_EXCEEDED (code 4028) error with sub-status 0 originating in the module sui::event rooted here
+│    │                   In this function in sui::event
+│ 
+│ 
+│ stack trace
+│ 	fresh_math_review::bounded_carry_can_accumulate_across_10002_voluntary_exits(./tests/fresh_math_review.move:34)
+│ 
+└──────────────────
+
+Test result: FAILED. Total tests: 2; passed: 1; failed: 1

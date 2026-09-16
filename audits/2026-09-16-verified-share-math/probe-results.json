@@ -1,0 +1,71 @@
+{
+  "bounds": {
+    "deposit_numerator_bits": 124,
+    "max_index_bits": 188,
+    "max_share_times_index_bits": 235,
+    "maximum_full_u64_deposits_before_lifetime_cap": 18446744073709551617,
+    "maximum_full_u64_deposits_in_u128_scaled_reward": 18
+  },
+  "old_generic": {
+    "old_share_amount": 18446744073709551614,
+    "new_payout": 19,
+    "production_supply": 100000000000000
+  },
+  "aggregate_carry": {
+    "rounds": 10002,
+    "deposits": 20004,
+    "persistent_payout": 10003,
+    "ideal_current_registered_pro_rata": "1000099990001019804/99990000999901",
+    "payout_minus_ideal": "99990000989899/99990000999901",
+    "pool_balance": 10001,
+    "forfeited_scaled": 10000999900009998000000,
+    "carry": 0,
+    "assumption": "Transient shareholder voluntarily unregisters with subunit credit each round."
+  },
+  "randomized": [
+    {
+      "seed": 1,
+      "steps": 25000,
+      "calls": {
+        "register": 5778,
+        "deposit": 4830,
+        "claim": 27194,
+        "unregister": 5777
+      },
+      "deposits": 35396760418881382188832
+    },
+    {
+      "seed": 29,
+      "steps": 25000,
+      "calls": {
+        "register": 5779,
+        "deposit": 4985,
+        "claim": 26904,
+        "unregister": 5774
+      },
+      "deposits": 35841267789127056162818
+    },
+    {
+      "seed": 20260916,
+      "steps": 25000,
+      "calls": {
+        "register": 5736,
+        "deposit": 4952,
+        "claim": 26950,
+        "unregister": 5733
+      },
+      "deposits": 34906927516432499744989
+    },
+    {
+      "seed": 4294967295,
+      "steps": 25000,
+      "calls": {
+        "register": 5734,
+        "deposit": 5015,
+        "claim": 26928,
+        "unregister": 5732
+      },
+      "deposits": 36193453939686919855971
+    }
+  ]
+}
