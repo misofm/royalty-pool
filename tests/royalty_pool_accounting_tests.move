@@ -27,7 +27,7 @@ use sui::test_scenario::{Self, Scenario};
 
 const ALICE: address = @0xA1;
 const P: u256 = 1_000_000_000_000_000_000;
-const SUPPLY: u64 = 10_000_000_000_000; // miso_share fixed supply
+const SUPPLY: u64 = 100_000_000_000_000; // verified share fixed supply
 const OPS: u64 = 250;
 const MAX_LIVE: u64 = 12;
 
@@ -136,7 +136,7 @@ fun rnd(s: &mut u64): u64 {
 fun fuzz(seed: u64) {
     let mut sc = test_scenario::begin(ALICE);
     let mut parent = object::new(sc.ctx());
-    let pool = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
     let pool_id = object::id(&pool);
     pool.share();
     destroy(parent);
@@ -201,7 +201,7 @@ fun fuzz(seed: u64) {
 
 fun setup<Share, Currency>(sc: &mut Scenario): ID {
     let mut parent = object::new(sc.ctx());
-    let pool = pool::new<Share, Currency>(&mut parent);
+    let pool = pool::new_for_testing<Share, Currency>(&mut parent);
     let id = object::id(&pool);
     pool.share();
     destroy(parent);

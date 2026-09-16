@@ -1,0 +1,10 @@
+[NOTE] Updating dependencies for `mainnet` environment because "./Move.toml" has been changed since the last update.
+INCLUDING DEPENDENCY MoveStdlib
+INCLUDING DEPENDENCY Sui
+INCLUDING DEPENDENCY hikida
+INCLUDING DEPENDENCY share
+BUILDING royalty_pool
+Running Move unit tests
+[ PASS    ] royalty_pool::fresh_math_review::bounded_carry_accumulates_across_100_voluntary_exits
+[ PASS    ] royalty_pool::fresh_math_review::full_supply_still_advances_by_10000_index_units_per_payout_unit
+Test result: OK. Total tests: 2; passed: 2; failed: 0

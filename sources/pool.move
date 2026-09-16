@@ -58,6 +58,12 @@
 ///   never loses value — it is folded into the next deposit. This also means
 ///   a share supply larger than `PRECISION` cannot lock deposits: they
 ///   accumulate in `carry` until they fold.
+///   Production construction admits at most `100_000_000_000_000` share base
+///   units, so `carry / PRECISION` is always strictly less than `10^-4` of one
+///   payout base unit. Carry is pool-wide and a later deposit folds it against
+///   the stake set then registered: accounting is exactly conserved, but that
+///   sub-base-unit residual is not attributed exactly to the cohort present
+///   when it arose.
 /// - A registration records its debt in `shares · index` units at full
 ///   precision and pays `⌊(shares · index − debt) / PRECISION⌋`; the payout is
 ///   added back to the debt as `reward · PRECISION`. A registration's lifetime
@@ -73,10 +79,12 @@ module royalty_pool::pool;
 
 use hikida::hikida;
 use royalty_pool::stake::{Self, Stake};
+use share::share;
 use std::type_name;
 use sui::accumulator::AccumulatorRoot;
 use sui::balance::{Self, Balance};
 use sui::coin::Coin;
+use sui::coin_registry;
 use sui::derived_object::{claim, derive_address};
 use sui::event::emit;
 use sui::transfer::Receiving;
@@ -90,6 +98,8 @@ const ENotRegistered: u64 = 3;
 const EPoolIdMismatch: u64 = 4;
 const ELastClaimIndexMismatch: u64 = 5;
 const EInvalidValue: u64 = 6;
+/// The supplied share currency does not satisfy `share::share::is_share`.
+const EInvalidShareCurrency: u64 = 7;
 
 // === Constants ===
 
@@ -224,14 +234,32 @@ public struct RoyaltyClaimedEvent<phantom Share, phantom Currency> has copy, dro
 
 // === Public Functions ===
 
-/// Construct a pool as a derived object of `parent`. The derivation key
-/// encodes both type parameters, so the pool's address is determined
-/// entirely by `(parent_id, Share, Currency)` — and therefore always names
-/// a pool of exactly this type (see `RoyaltyPoolKey`).
+/// Construct a pool as a derived object of `parent`, after proving `Share`
+/// is the protocol's fixed-supply, immutable and freeze-proof share currency.
+/// The payout `Currency` remains arbitrary. The derivation key encodes both
+/// type parameters, so the pool's address is determined entirely by
+/// `(parent_id, Share, Currency)` — and therefore always names a pool of
+/// exactly this type (see `RoyaltyPoolKey`).
 ///
 /// Cap-gating happens at the parent: callers must obtain `&mut UID` via
 /// whatever cap-gated accessor the parent exposes.
-public fun new<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> {
+public fun new<Share, Currency>(
+    parent: &mut UID,
+    share_currency: &coin_registry::Currency<Share>,
+): RoyaltyPool<Share, Currency> {
+    assert!(share::is_share(share_currency), EInvalidShareCurrency);
+    new_unchecked(parent)
+}
+
+/// Construct a pool for arithmetic tests whose phantom share type has no
+/// registry currency. This function is absent from production bytecode;
+/// production construction always passes through `new`'s share verification.
+#[test_only]
+public fun new_for_testing<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> {
+    new_unchecked(parent)
+}
+
+fun new_unchecked<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> {
     let parent_id = parent.to_inner();
     let pool = RoyaltyPool<Share, Currency> {
         id: claim(parent, RoyaltyPoolKey<Share, Currency>()),

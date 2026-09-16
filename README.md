@@ -2,13 +2,21 @@
 
 > Accumulator-based royalty distribution: holders stake share tokens, callers deposit revenue, and every deposit is split pro-rata with O(1) work per deposit and per claim.
 
-**Layer:** `lib` — a primitive, not core protocol and not an extension (it attaches to nothing miso-specific). A `RoyaltyPool<Share, Currency>` is a derived object of any UID-bearing parent.
+**Layer:** `lib`. A `RoyaltyPool<Share, Currency>` is a derived object of any UID-bearing parent. Production construction requires a `coin_registry::Currency<Share>` that passes `share::share::is_share`; payout `Currency` remains arbitrary.
 
 ## How it works
 
 The pool keeps a `cumulative_reward_per_share` index. A deposit of `v` across `S` staked shares advances the index by `⌊(v · PRECISION + carry) / S⌋` and keeps the remainder in `carry`, so deposit rounding never loses value; a registration records its debt as `shares · index` at full precision and a claim pays `⌊(shares · index − debt) / PRECISION⌋`, adding `reward · PRECISION` back to the debt. Neither operation iterates over holders, so cost does not grow with the number of stakers.
 
-The accounting is exact: a registration's lifetime payout is precisely `⌊shares · Δindex / PRECISION⌋`, sub-unit credit carries across claims without ever being inflated, and `balance · PRECISION == Σ(shares · index − debt) + carry + forfeited` holds at all times — the pool can never owe more than it holds. The only value that stays behind is under one base unit of residue per registration, forfeited at unregister.
+The accounting is exact: a registration's lifetime payout is precisely `⌊shares · Δindex / PRECISION⌋`, sub-unit credit carries across claims without ever being inflated, and `balance · PRECISION == Σ(shares · index − debt) + carry + forfeited` holds at all times — the pool can never owe more than it holds. With verified share supply capped at `100_000_000_000_000` base units and `PRECISION = 10^18`, the pool-wide deposit carry is strictly less than `10^-4` of one payout base unit. Carry is folded into a later index update against the stake set then registered, so this conservation guarantee does not promise exact attribution of that sub-base-unit residual to the cohort present when it arose. The only other value that stays behind is under one base unit of residue per registration, forfeited at unregister.
+
+The fixed supply does not by itself bound lifetime deposits. The existing `cumulative_deposits: u128` counter supplies that limit: before it is reached, the cumulative index needs at most 188 bits and `shares * index` or registration debt needs at most 235 bits. The deposit numerator needs at most 124 bits. Keep `PRECISION = 10^18`, the `u128` deposit intermediate, and `u256` index/debt. A `u128` scaled obligation would overflow on the 19th fully paid `u64::MAX` deposit cycle for a one-share position; the actual lifetime counter permits 18,446,744,073,709,551,617 maximum-sized deposits before the next addition exceeds its range. Overflow aborts atomically.
+
+Because `10^18 / 10^14 = 10,000` exactly, every positive deposit of `v` advances the index by at least `v * 10,000`. A continuously registered holder with `s` shares therefore receives at least `floor(s * total_deposits_during_registration / 10^14)` across claims and pending rewards. This is the fixed-total-supply minimum, not exact historical attribution to each changing registered group. Repeated membership changes can accumulate carry differences over time; the `10^-4` bound applies to the outstanding remainder, not lifetime aggregate differences.
+
+## Verified construction
+
+`pool::new<Share, Currency>(parent, share_currency)` admits a pool only when `share_currency` proves that `Share` has the required type shape, immutable metadata, six decimals, no regulation or freeze authority, and the fixed 100,000,000-token supply. An invalid or incompletely initialized currency aborts with `EInvalidShareCurrency`. The unchecked constructor used by generic arithmetic tests is marked `#[test_only]` and is absent from production bytecode.
 
 ## Honest addresses
 

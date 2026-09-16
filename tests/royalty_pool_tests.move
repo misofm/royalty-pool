@@ -47,7 +47,7 @@ public struct OTHER_CURRENCY() has drop;
 fun create_pool(scenario: &mut Scenario): ID {
     scenario.next_tx(ALICE);
     let mut parent = object::new(scenario.ctx());
-    let pool = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
     let pool_id = object::id(&pool);
     pool.share();
     destroy(parent);
@@ -432,8 +432,8 @@ fun test_two_currencies_same_stake() {
 
     scenario.next_tx(ALICE);
     let mut parent = object::new(scenario.ctx());
-    let pool_a = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
-    let pool_b = pool::new<TEST_SHARE, OTHER_CURRENCY>(&mut parent);
+    let pool_a = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool_b = pool::new_for_testing<TEST_SHARE, OTHER_CURRENCY>(&mut parent);
     let id_a = object::id(&pool_a);
     let id_b = object::id(&pool_b);
     pool_a.share();
@@ -542,7 +542,7 @@ fun test_derived_address_matches_pool_address() {
     scenario.next_tx(ALICE);
     let mut parent = object::new(scenario.ctx());
     let parent_id = parent.to_inner();
-    let pool = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
     let derived = pool::derived_address<TEST_SHARE, TEST_CURRENCY>(parent_id);
     assert!(derived == object::id_to_address(&object::id(&pool)));
     pool.assert_derived_from(parent_id);
@@ -558,7 +558,7 @@ fun test_sharing_is_silent_and_preserves_pre_share_state() {
     let mut scenario = test_scenario::begin(ALICE);
     scenario.next_tx(ALICE);
     let mut parent = object::new(scenario.ctx());
-    let mut pool = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let mut pool = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
     let pool_id = object::id(&pool);
     let mut s = new_stake(&mut scenario, 100);
     pool.register_stake(&mut s);
@@ -587,8 +587,8 @@ fun test_event_type_separates_phantom_share_and_currency() {
     let mut scenario = test_scenario::begin(ALICE);
     scenario.next_tx(ALICE);
     let mut parent = object::new(scenario.ctx());
-    let pool_a = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
-    let pool_b = pool::new<OTHER_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool_a = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool_b = pool::new_for_testing<OTHER_SHARE, TEST_CURRENCY>(&mut parent);
     let a = event::events_by_type<RoyaltyPoolCreatedEvent<TEST_SHARE, TEST_CURRENCY>>();
     let b = event::events_by_type<RoyaltyPoolCreatedEvent<OTHER_SHARE, TEST_CURRENCY>>();
     assert_eq!(a.length(), 1);
@@ -606,7 +606,7 @@ fun test_assert_derived_from_aborts_for_wrong_parent() {
     scenario.next_tx(ALICE);
     let mut parent = object::new(scenario.ctx());
     let other = object::new(scenario.ctx());
-    let pool = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
     pool.assert_derived_from(other.to_inner()); // aborts
     pool.share();
     destroy(parent);
@@ -1210,8 +1210,8 @@ fun create_two_pools_same_currency(scenario: &mut Scenario): (ID, ID) {
     scenario.next_tx(ALICE);
     let mut parent_a = object::new(scenario.ctx());
     let mut parent_b = object::new(scenario.ctx());
-    let pool_a = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent_a);
-    let pool_b = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent_b);
+    let pool_a = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent_a);
+    let pool_b = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent_b);
     let id_a = object::id(&pool_a);
     let id_b = object::id(&pool_b);
     pool_a.share();
@@ -1345,7 +1345,7 @@ fun test_full_lifecycle_emits_expected_events_with_exact_payloads() {
     // --- Tx 1: pool creation ---
     let mut parent = object::new(scenario.ctx());
     let _parent_id = parent.to_inner();
-    let pool = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
     let pool_id = object::id(&pool);
     let created = event::events_by_type<RoyaltyPoolCreatedEvent<TEST_SHARE, TEST_CURRENCY>>();
     assert_eq!(created.length(), 1);

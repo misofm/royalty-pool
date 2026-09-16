@@ -1,0 +1,41 @@
+{
+  "share": {
+    "head": "4778e59a2b166a62a92a5fd34b8be7f0f2550d0a",
+    "files": {
+      "sources/share.move": "9dfd259d0f9f0bc3ca519fabb48038b5c2d668ad06d26af82f7ec7b54cfca53d"
+    }
+  },
+  "royalty-pool": {
+    "head": "768012d6e8ae7eca07750d0ef7ef09f04f21cd32",
+    "files": {
+      "audits/2026-09-09-royalty-math-verification/manual-move-tests/move/routed-stake/sources/routed_stake.move": "8fb8ee7497aae478f956b8b125d49ef4ed818974efb9de247ead5e3d7e869645",
+      "audits/2026-09-09-royalty-math-verification/manual-move-tests/move/royalty-pool/sources/pool.move": "bc963f0f454e414dda0b44a838f13092daa4a91c7ba8b41a20f4e7fd0bdfe494",
+      "audits/2026-09-09-royalty-math-verification/manual-move-tests/move/royalty-pool/sources/stake.move": "6ee83e7be4abd614eaedfa3cda686674d6e2db0c269a92febda68563275dcdb7",
+      "audits/2026-09-09-royalty-math-verification/manual-move-tests/rrd/sources/release_revenue_distributor.move": "e76f6359cc386f960cfa37bb19bda870a295749f6122d4136b4d1b6f7bec3ba0",
+      "audits/2026-09-09-royalty-math-verification/prover-pool-specs/sources/claim_specs.move": "fff4e18c856e0782d765239a183e640a003691687de386debf13f42f85078dd6",
+      "audits/2026-09-09-royalty-math-verification/prover-pool-specs/sources/pool_specs.move": "7c10e22da5c59196feae265aa1ba6c4e22ed9b89292cccf91c6ab66806224966",
+      "audits/2026-09-09-royalty-math-verification/prover-pool-specs/sources/register_specs.move": "bc102678b13c4485f97d31e88c4bbe501f72e2ded80dc39c8a0bed3574fc853b",
+      "audits/2026-09-09-royalty-math-verification/prover-pool-specs/sources/unregister_specs.move": "2589c4f77748ccc78e7dce99c8eb2e90fc031e7284e624b40847f465778c171c",
+      "audits/2026-09-09-royalty-math-verification/royalty-sim/move/routed-stake/sources/routed_stake.move": "8fb8ee7497aae478f956b8b125d49ef4ed818974efb9de247ead5e3d7e869645",
+      "audits/2026-09-09-royalty-math-verification/royalty-sim/move/royalty-pool/sources/pool.move": "c5591a52c390f77521276c3e09e215eaaeb56ce06e563b9a2b8e5b0814a7295c",
+      "audits/2026-09-09-royalty-math-verification/royalty-sim/move/royalty-pool/sources/stake.move": "6ee83e7be4abd614eaedfa3cda686674d6e2db0c269a92febda68563275dcdb7",
+      "sources/pool.move": "4259ad85352b64f20b1a49e5c17a5b813c7c0603ff4b2a8bad05a2d2befc278a",
+      "sources/stake.move": "d9bebb3e1eee42843ea50f84029732277e28114ecdf139d84bf6e63c1e8e83c7"
+    }
+  },
+  "routed-stake": {
+    "head": "58c63b9c7e8f73f376f747d559b3e4c7be283d2f",
+    "files": {
+      "sources/routed_stake.move": "9f3039c5750accbc17042ff7b1f8aadf1c4bc4add234322c6e6b7c6699f69a70"
+    }
+  },
+  "musicos-actions": {
+    "head": "1dea0cbbde3f44479e9493ae0182689928d8d5ce",
+    "files": {
+      "composition_routed_stake/sources/composition_routed_stake.move": "327103f4990ee2d85d9420071c6c6c306603912db752b7bc78bfef78506bc73a",
+      "composition_royalty_pool/sources/composition_royalty_pool.move": "548d58337db15e52202401b715ff59e3c4e6d29036e8950f3a0b860950d8a722",
+      "recording_royalty_pool/sources/recording_royalty_pool.move": "7031bbe3ccffad763a8876aced1b005b6b1baa6746f02fc1a85912e6e1eeb845",
+      "release_revenue_distributor/sources/release_revenue_distributor.move": "91ee1db329290d1289cba8330430723b0fb8f3396430bc9a24221ddda601edc3"
+    }
+  }
+}

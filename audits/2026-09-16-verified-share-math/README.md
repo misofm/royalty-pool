@@ -1,0 +1,5 @@
+# Independent verified-share arithmetic evidence
+
+[Review and conclusions](REPORT.md). These are the original independent review artifacts, including source hashes and review-time paths. The subsequent README-only lifetime-bound clarification does not change the reviewed arithmetic.
+
+Run the independent integer oracle with `python3 probes.py`. The included Move test source was run in an isolated copy of the reviewed Royalty Pool package with its matching verified-share dependency. Build output and temporary local manifests are intentionally omitted. To reproduce the Move probes, copy `package/tests/fresh_math_review.move` into an isolated checkout of the exact reviewed package and run Sui 1.79.0 `sui move test fresh_math_review --build-env mainnet --lint --warnings-are-errors`. Use the share revision recorded in this repository’s manifest. The 100-cycle probe passes; the 10,002-cycle attempt hit the framework event-memory limit, retained transparently in its separate log. The independent oracle verifies the longer recurrence.
