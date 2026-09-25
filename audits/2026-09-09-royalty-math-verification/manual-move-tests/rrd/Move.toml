@@ -2,7 +2,7 @@
 name = "release_revenue_distributor"
 edition = "2024"
 license = "Apache 2.0"
-authors = ["Miso Labs, Inc. (build@miso.network)"]
+authors = ["Miso Labs, Inc. (build@miso.fm)"]
 
 [dependencies]
 musicos = { git = "https://github.com/misofm/musicos.git", rev = "4cb3c926b1f9bb5103f3f7194e4e1e34b6c87840" }
