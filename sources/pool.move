@@ -1,90 +1,23 @@
 // Copyright (c) Miso Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-/// Accumulator-based royalty distribution pool for the protocol's share
-/// tokens.
+/// Accumulator-based royalty distribution for native, subject-scoped shares.
 ///
-/// A `RoyaltyPool<Share, Currency>` is a derived object of any UID-bearing
-/// parent. Its address is deterministically derived from
-/// `(parent_id, Share, Currency)` — at most one pool per triple, and the pool
-/// at that address is necessarily typed `RoyaltyPool<Share, Currency>` (the
-/// same type parameters produce the address and the object) and necessarily
-/// shared (the pool is key-only; `share` is its only consumer). The `Share`
-/// phantom identifies which share-token type can stake against the pool.
-///
-/// Holders create a `Stake<Share>` (see `royalty_pool::stake`) and register
-/// it. Callers fund the pool by handing it a `Balance<Currency>` via
-/// `deposit`; the accumulator advances and claims pay out the per-stake
-/// proportional share since each stake's last claim.
-///
-/// The pool is funded two ways, both committing the funds to share holders:
-/// - `deposit(balance)` from any caller holding `&mut` on the pool — e.g.
-///   `routed_stake::sweep`, which deposits a wrapped stake's claimed rewards
-///   into its parent's pool.
-/// - Delivery to the pool's derived address — pending `Coin<Currency>`
-///   transfers or address-balance credits (e.g.
-///   `release_revenue_distributor` settles each track's split there). The
-///   address is a pure function of `(parent_id, Share, Currency)`, so senders
-///   need the pool neither shared nor even created yet; a later `new` claims
-///   exactly that ID — and can only be the correctly-typed, shared pool.
-///   `recover_coins` and `settle` fold such funds into the accumulator,
-///   permissionlessly: anyone can complete the delivery. Both are total —
-///   a crank-facing call never aborts for having nothing to do. `settle`
-///   folds in what is settled at the pool's own address once stakers exist;
-///   while `staked_shares == 0` it returns 0 and reads nothing, so funds at
-///   the pool's address wait, unredeemed, until a stake registers.
-///   `recover_coins` never deposits — it only converts coin objects into
-///   funds at the same address for a later `settle` to redeem.
-///
-/// ### No activation delay (deliberate)
-///
-/// Registration earns from the next deposit onward; there is no bonding or
-/// unbonding period (contrast Sui native staking's next-epoch activation).
-/// With the protocol's fixed-supply share token this is safe: a stake's
-/// take of any deposit is `v · s / S` with `S` (total registered) bounded
-/// by the share supply, so a continuously registered stake is guaranteed at
-/// least its pro-rata share of total supply on every deposit. Short-lived
-/// or just-in-time registrations can only compete for the *unregistered*
-/// supply's drift — the designed incentive for being registered — never
-/// below any registered stake's floor.
-///
-/// ### Exact accounting
-///
-/// Every base unit deposited is accounted for, to the last index unit:
-///
-/// - A deposit of `v` across `S` staked shares advances the index by
-///   `⌊(v · PRECISION + carry) / S⌋` and keeps the remainder in `carry`
-///   (in `value · PRECISION` units, independent of `S`), so deposit rounding
-///   never loses value — it is folded into the next deposit. This also means
-///   a share supply larger than `PRECISION` cannot lock deposits: they
-///   accumulate in `carry` until they fold.
-///   Production construction admits at most `100_000_000_000_000` share base
-///   units, so `carry / PRECISION` is always strictly less than `10^-4` of one
-///   payout base unit. Carry is pool-wide and a later deposit folds it against
-///   the stake set then registered: accounting is exactly conserved, but that
-///   sub-base-unit residual is not attributed exactly to the cohort present
-///   when it arose.
-/// - A registration records its debt in `shares · index` units at full
-///   precision and pays `⌊(shares · index − debt) / PRECISION⌋`; the payout is
-///   added back to the debt as `reward · PRECISION`. A registration's lifetime
-///   payout is therefore exactly `⌊shares · Δindex / PRECISION⌋`: sub-unit
-///   credit carries across claims and is never inflated. At most one base
-///   unit of sub-unit residue is forfeited per registration, at unregister.
-///
-/// Consequently `balance · PRECISION == Σ (shares · index − debt) + carry +
-/// forfeited` at all times — the pool can never owe more than it holds — and
-/// `PRECISION` is only a granularity/overflow choice: `shares · index` fits
-/// `u256` for any `u64` share supply and lifetime deposits.
+/// A pool is derived from a subject UID, its immutable Share issuance ID,
+/// and a payout currency. Construction verifies the issuance belongs to the
+/// subject. Stake registration verifies the stake holds that exact issuance.
+/// Deposits accrue to registered units through a scaled reward index; carry
+/// retains deposit rounding and per-stake debt retains claim rounding.
+/// Funds at the pool address can be settled after at least one stake registers.
 module royalty_pool::pool;
 
 use hikida::hikida;
 use royalty_pool::stake::{Self, Stake};
-use share::share;
+use share::share::{Issuance};
 use std::type_name;
 use sui::accumulator::AccumulatorRoot;
 use sui::balance::{Self, Balance};
 use sui::coin::Coin;
-use sui::coin_registry;
 use sui::derived_object::{claim, derive_address};
 use sui::event::emit;
 use sui::transfer::Receiving;
@@ -98,8 +31,9 @@ const ENotRegistered: u64 = 3;
 const EPoolIdMismatch: u64 = 4;
 const ELastClaimIndexMismatch: u64 = 5;
 const EInvalidValue: u64 = 6;
-/// The supplied share currency does not satisfy `share::share::is_share`.
-const EInvalidShareCurrency: u64 = 7;
+/// The supplied issuance belongs to another subject.
+const EIssuanceSubjectMismatch: u64 = 7;
+const EStakeIssuanceMismatch: u64 = 8;
 
 // === Constants ===
 
@@ -107,9 +41,10 @@ const PRECISION: u128 = 1_000_000_000_000_000_000;
 
 // === Structs ===
 
-public struct RoyaltyPool<phantom Share, phantom Currency> has key {
+public struct RoyaltyPool<phantom Currency> has key {
     id: UID,
     balance: Balance<Currency>,
+    issuance_id: ID,
     staked_shares: u64,
     cumulative_reward_per_share: u256,
     /// Deposit remainder not yet folded into the index, in
@@ -121,26 +56,16 @@ public struct RoyaltyPool<phantom Share, phantom Currency> has key {
     cumulative_deposits: u128,
 }
 
-/// Key used to derive a pool's object ID from its parent UID.
-///
-/// Phantom-typed: both `Share` and `Currency` are encoded in the BCS type
-/// tag, so the struct itself is empty and zero-cost. Encoding `Share` makes
-/// the derived address honest by construction — `new`'s type parameters
-/// determine both the claimed address and the pool's own type, so the pool
-/// at `(parent, Share, Currency)` is necessarily a `RoyaltyPool<Share,
-/// Currency>`, and (the pool being key-only) necessarily shared. A pool
-/// created with a wrong `Share` claims a different, unpaid address; it can
-/// neither block nor impersonate the canonical one. Payers therefore need no
-/// trust in the pool's creator — only the standard care that the `Share`
-/// they derive with is the parent's true share type (pin it with a typed
-/// reference to the parent when the caller supplies it).
-public struct RoyaltyPoolKey<phantom Share, phantom Currency>() has copy, drop, store;
+/// Key encodes the issuance ID and payout currency for deterministic
+/// derivation from the subject UID.
+public struct RoyaltyPoolKey<phantom Currency>(ID) has copy, drop, store;
 
 // === Events ===
 
-public struct RoyaltyPoolCreatedEvent<phantom Share, phantom Currency> has copy, drop {
+public struct RoyaltyPoolCreatedEvent<phantom Currency> has copy, drop {
     pool_id: address,
     parent_id: address,
+    issuance_id: address,
     precision: u128,
     pool_balance_after: u64,
     staked_shares_after: u64,
@@ -149,7 +74,7 @@ public struct RoyaltyPoolCreatedEvent<phantom Share, phantom Currency> has copy,
     cumulative_deposits_after: u128,
 }
 
-public struct RoyaltyDepositedEvent<phantom Share, phantom Currency> has copy, drop {
+public struct RoyaltyDepositedEvent<phantom Currency> has copy, drop {
     pool_id: address,
     value: u64,
     cumulative_reward_per_share_before: u256,
@@ -161,7 +86,7 @@ public struct RoyaltyDepositedEvent<phantom Share, phantom Currency> has copy, d
     cumulative_deposits_after: u128,
 }
 
-public struct RoyaltyPoolFundsSettledEvent<phantom Share, phantom Currency> has copy, drop {
+public struct RoyaltyPoolFundsSettledEvent<phantom Currency> has copy, drop {
     pool_id: address,
     source_address: address,
     accumulator_root_id: address,
@@ -177,7 +102,7 @@ public struct RoyaltyPoolFundsSettledEvent<phantom Share, phantom Currency> has 
 
 /// Emitted by `recover_coins` for every nonempty input vector, including
 /// vectors whose coins sum to zero.
-public struct RoyaltyPoolCoinsRecoveredEvent<phantom Share, phantom Currency> has copy, drop {
+public struct RoyaltyPoolCoinsRecoveredEvent<phantom Currency> has copy, drop {
     pool_id: address,
     coin_count: u64,
     funds_recipient: address,
@@ -189,7 +114,7 @@ public struct RoyaltyPoolCoinsRecoveredEvent<phantom Share, phantom Currency> ha
     cumulative_deposits_after: u128,
 }
 
-public struct StakeRegisteredEvent<phantom Share, phantom Currency> has copy, drop {
+public struct StakeRegisteredEvent<phantom Currency> has copy, drop {
     pool_id: address,
     stake_id: address,
     staked_amount: u64,
@@ -202,7 +127,7 @@ public struct StakeRegisteredEvent<phantom Share, phantom Currency> has copy, dr
     cumulative_deposits_after: u128,
 }
 
-public struct StakeUnregisteredEvent<phantom Share, phantom Currency> has copy, drop {
+public struct StakeUnregisteredEvent<phantom Currency> has copy, drop {
     pool_id: address,
     stake_id: address,
     unstaked_amount: u64,
@@ -216,7 +141,7 @@ public struct StakeUnregisteredEvent<phantom Share, phantom Currency> has copy, 
     cumulative_deposits_after: u128,
 }
 
-public struct RoyaltyClaimedEvent<phantom Share, phantom Currency> has copy, drop {
+public struct RoyaltyClaimedEvent<phantom Currency> has copy, drop {
     pool_id: address,
     stake_id: address,
     staked_amount: u64,
@@ -234,45 +159,25 @@ public struct RoyaltyClaimedEvent<phantom Share, phantom Currency> has copy, dro
 
 // === Public Functions ===
 
-/// Construct a pool as a derived object of `parent`, after proving `Share`
-/// is the protocol's fixed-supply, immutable and freeze-proof share currency.
-/// The payout `Currency` remains arbitrary. The derivation key encodes both
-/// type parameters, so the pool's address is determined entirely by
-/// `(parent_id, Share, Currency)` — and therefore always names a pool of
-/// exactly this type (see `RoyaltyPoolKey`).
-///
-/// Cap-gating happens at the parent: callers must obtain `&mut UID` via
-/// whatever cap-gated accessor the parent exposes.
-public fun new<Share, Currency>(
-    parent: &mut UID,
-    share_currency: &coin_registry::Currency<Share>,
-): RoyaltyPool<Share, Currency> {
-    assert!(share::is_share(share_currency), EInvalidShareCurrency);
-    new_unchecked(parent)
-}
-
-/// Construct a pool for arithmetic tests whose phantom share type has no
-/// registry currency. This function is absent from production bytecode;
-/// production construction always passes through `new`'s share verification.
-#[test_only]
-public fun new_for_testing<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> {
-    new_unchecked(parent)
-}
-
-fun new_unchecked<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currency> {
+/// Construct a pool for the subject of an immutable native-share issuance.
+/// The parent UID is obtained through the subject's cap-gated accessor.
+public fun new<Currency>(parent: &mut UID, issuance: &Issuance): RoyaltyPool<Currency> {
+    assert!(parent.to_inner() == issuance.subject_id(), EIssuanceSubjectMismatch);
     let parent_id = parent.to_inner();
-    let pool = RoyaltyPool<Share, Currency> {
-        id: claim(parent, RoyaltyPoolKey<Share, Currency>()),
+    let issuance_id = object::id(issuance);
+    let pool = RoyaltyPool<Currency> {
+        id: claim(parent, RoyaltyPoolKey<Currency>(issuance_id)),
         balance: balance::zero(),
+        issuance_id,
         staked_shares: 0,
         cumulative_reward_per_share: 0,
         carry: 0,
         cumulative_deposits: 0,
     };
-
-    emit(RoyaltyPoolCreatedEvent<Share, Currency> {
+    emit(RoyaltyPoolCreatedEvent<Currency> {
         pool_id: object::id(&pool).to_address(),
         parent_id: parent_id.to_address(),
+        issuance_id: issuance_id.to_address(),
         precision: PRECISION,
         pool_balance_after: pool.balance.value(),
         staked_shares_after: pool.staked_shares,
@@ -280,12 +185,11 @@ fun new_unchecked<Share, Currency>(parent: &mut UID): RoyaltyPool<Share, Currenc
         carry_after: pool.carry,
         cumulative_deposits_after: pool.cumulative_deposits,
     });
-
     pool
 }
 
 /// Share the pool object so holders can register and claim against it.
-public fun share<Share, Currency>(self: RoyaltyPool<Share, Currency>) {
+public fun share<Currency>(self: RoyaltyPool<Currency>) {
     transfer::share_object(self);
 }
 
@@ -296,8 +200,8 @@ public fun share<Share, Currency>(self: RoyaltyPool<Share, Currency>) {
 /// Callers obtain the `Balance<Currency>` however they like — typically by
 /// pulling from a parent's pending coins or funds accumulator (see e.g.
 /// `composition_royalty_distributor`).
-public fun deposit<Share, Currency>(
-    self: &mut RoyaltyPool<Share, Currency>,
+public fun deposit<Currency>(
+    self: &mut RoyaltyPool<Currency>,
     balance: Balance<Currency>,
 ) {
     let value = balance.value();
@@ -306,7 +210,7 @@ public fun deposit<Share, Currency>(
     let carry_before = self.carry;
     self.deposit_balance(balance);
 
-    emit(RoyaltyDepositedEvent<Share, Currency> {
+    emit(RoyaltyDepositedEvent<Currency> {
         pool_id,
         value,
         cumulative_reward_per_share_before,
@@ -324,7 +228,7 @@ public fun deposit<Share, Currency>(
 /// pool had no stakers. Returns the value deposited. Returns 0 and changes
 /// nothing when nothing is settled or when `staked_shares == 0` (the funds
 /// stay at the pool's address until a stake registers). Permissionless.
-public fun settle<Share, Currency>(self: &mut RoyaltyPool<Share, Currency>, root: &AccumulatorRoot): u64 {
+public fun settle<Currency>(self: &mut RoyaltyPool<Currency>, root: &AccumulatorRoot): u64 {
     if (self.staked_shares == 0) return 0;
 
     let balance = hikida::redeem_settled_balance<Currency>(&mut self.id, root);
@@ -337,7 +241,7 @@ public fun settle<Share, Currency>(self: &mut RoyaltyPool<Share, Currency>, root
     let cumulative_reward_per_share_before = self.cumulative_reward_per_share;
     let carry_before = self.carry;
     self.deposit_balance(balance);
-    emit(RoyaltyPoolFundsSettledEvent<Share, Currency> {
+    emit(RoyaltyPoolFundsSettledEvent<Currency> {
         pool_id: object::id(self).to_address(),
         source_address: object::id(self).to_address(),
         accumulator_root_id: object::id(root).to_address(),
@@ -356,15 +260,15 @@ public fun settle<Share, Currency>(self: &mut RoyaltyPool<Share, Currency>, root
 /// Convert `Coin` objects sent to this pool's address into funds at the same
 /// address, so `settle` can fold them in next commit. Deposits nothing.
 /// Returns the value converted; 0 for an empty vector. Permissionless.
-public fun recover_coins<Share, Currency>(
-    self: &mut RoyaltyPool<Share, Currency>,
+public fun recover_coins<Currency>(
+    self: &mut RoyaltyPool<Currency>,
     coins: vector<Receiving<Coin<Currency>>>,
 ): u64 {
     let pool_address = self.id.to_address();
     let coin_count = coins.length();
     let value = hikida::receive_coins_and_send_funds(&mut self.id, coins, pool_address);
     if (coin_count > 0) {
-        emit(RoyaltyPoolCoinsRecoveredEvent<Share, Currency> {
+        emit(RoyaltyPoolCoinsRecoveredEvent<Currency> {
             pool_id: object::id(self).to_address(),
             coin_count,
             funds_recipient: pool_address,
@@ -383,10 +287,11 @@ public fun recover_coins<Share, Currency>(
 /// deposits accrue to it proportionally.
 ///
 /// Aborts if the stake is already registered with a pool of the same Currency.
-public fun register_stake<Share, Currency>(
-    self: &mut RoyaltyPool<Share, Currency>,
-    stake: &mut Stake<Share>,
+public fun register_stake<Currency>(
+    self: &mut RoyaltyPool<Currency>,
+    stake: &mut Stake,
 ) {
+    assert!(stake.issuance_id() == self.issuance_id, EStakeIssuanceMismatch);
     let currency = type_name::with_defining_ids<Currency>();
     assert!(!stake.has_registration(&currency), EAlreadyRegistered);
 
@@ -398,7 +303,7 @@ public fun register_stake<Share, Currency>(
     stake.add_registration(currency, stake::new_registration(pool_id, debt));
     self.staked_shares = self.staked_shares + staked_amount;
 
-    emit(StakeRegisteredEvent<Share, Currency> {
+    emit(StakeRegisteredEvent<Currency> {
         pool_id: pool_id.to_address(),
         stake_id,
         staked_amount,
@@ -417,10 +322,11 @@ public fun register_stake<Share, Currency>(
 /// residue (`shares · index − debt < PRECISION`) does NOT block unregister,
 /// since it could never be claimed as a whole base unit anyway. Forfeiting
 /// it on exit is the deliberate semantics.
-public fun unregister_stake<Share, Currency>(
-    self: &mut RoyaltyPool<Share, Currency>,
-    stake: &mut Stake<Share>,
+public fun unregister_stake<Currency>(
+    self: &mut RoyaltyPool<Currency>,
+    stake: &mut Stake,
 ) {
+    assert!(stake.issuance_id() == self.issuance_id, EStakeIssuanceMismatch);
     let currency = type_name::with_defining_ids<Currency>();
     assert!(stake.has_registration(&currency), ENotRegistered);
 
@@ -441,7 +347,7 @@ public fun unregister_stake<Share, Currency>(
     stake.remove_registration(&currency);
     self.staked_shares = self.staked_shares - staked_amount;
 
-    emit(StakeUnregisteredEvent<Share, Currency> {
+    emit(StakeUnregisteredEvent<Currency> {
         pool_id: pool_id.to_address(),
         stake_id,
         unstaked_amount: staked_amount,
@@ -458,10 +364,11 @@ public fun unregister_stake<Share, Currency>(
 
 /// Claim accrued rewards for a registered stake. Adds the payout to the
 /// registration's debt, so sub-unit credit carries over to the next claim.
-public fun claim_rewards<Share, Currency>(
-    self: &mut RoyaltyPool<Share, Currency>,
-    stake: &mut Stake<Share>,
+public fun claim_rewards<Currency>(
+    self: &mut RoyaltyPool<Currency>,
+    stake: &mut Stake,
 ): Balance<Currency> {
+    assert!(stake.issuance_id() == self.issuance_id, EStakeIssuanceMismatch);
     let currency = type_name::with_defining_ids<Currency>();
     assert!(stake.has_registration(&currency), ENotRegistered);
 
@@ -489,7 +396,7 @@ public fun claim_rewards<Share, Currency>(
     let stake_registration_count_after = stake.registration_count();
 
     if (reward_amount > 0) {
-        emit(RoyaltyClaimedEvent<Share, Currency> {
+        emit(RoyaltyClaimedEvent<Currency> {
             pool_id: pool_id.to_address(),
             stake_id,
             reward_amount,
@@ -513,10 +420,11 @@ public fun claim_rewards<Share, Currency>(
 
 /// Compute pending rewards for a stake without claiming. Returns 0 if the
 /// stake is not registered with this pool.
-public fun pending_rewards<Share, Currency>(
-    self: &RoyaltyPool<Share, Currency>,
-    stake: &Stake<Share>,
+public fun pending_rewards<Currency>(
+    self: &RoyaltyPool<Currency>,
+    stake: &Stake,
 ): u64 {
+    assert!(stake.issuance_id() == self.issuance_id, EStakeIssuanceMismatch);
     let currency = type_name::with_defining_ids<Currency>();
 
     if (!stake.has_registration(&currency)) {
@@ -535,36 +443,36 @@ public fun pending_rewards<Share, Currency>(
     )
 }
 
-public fun balance<Share, Currency>(self: &RoyaltyPool<Share, Currency>): &Balance<Currency> {
+public fun balance<Currency>(self: &RoyaltyPool<Currency>): &Balance<Currency> {
     &self.balance
 }
 
-public fun staked_shares<Share, Currency>(self: &RoyaltyPool<Share, Currency>): u64 {
+public fun staked_shares<Currency>(self: &RoyaltyPool<Currency>): u64 {
     self.staked_shares
 }
 
-public fun cumulative_reward_per_share<Share, Currency>(
-    self: &RoyaltyPool<Share, Currency>,
+public fun cumulative_reward_per_share<Currency>(
+    self: &RoyaltyPool<Currency>,
 ): u256 {
     self.cumulative_reward_per_share
 }
 
 /// Deposit remainder awaiting the next deposit, in `value · PRECISION` units.
-public fun carry<Share, Currency>(self: &RoyaltyPool<Share, Currency>): u128 {
+public fun carry<Currency>(self: &RoyaltyPool<Currency>): u128 {
     self.carry
 }
 
 /// Lifetime sum of all deposits, in currency base units. Strictly monotonic.
-public fun cumulative_deposits<Share, Currency>(
-    self: &RoyaltyPool<Share, Currency>,
+public fun cumulative_deposits<Currency>(
+    self: &RoyaltyPool<Currency>,
 ): u128 {
     self.cumulative_deposits
 }
 
 /// Funds of `Currency` settled at this pool's own address as of the start of
 /// the current consensus commit — what `settle` would redeem right now.
-public fun settled_value<Share, Currency>(
-    self: &RoyaltyPool<Share, Currency>,
+public fun settled_value<Currency>(
+    self: &RoyaltyPool<Currency>,
     root: &AccumulatorRoot,
 ): u64 {
     hikida::settled_balance_value<Currency>(&self.id, root)
@@ -573,17 +481,19 @@ public fun settled_value<Share, Currency>(
 /// Compute the deterministic address of a pool given its parent ID and
 /// `Currency` type parameter. Useful for off-chain derivation and for
 /// cross-module checks that the pool was minted from the expected parent.
-public fun derived_address<Share, Currency>(parent_id: ID): address {
-    derive_address(parent_id, RoyaltyPoolKey<Share, Currency>())
+public fun derived_address<Currency>(parent_id: ID, issuance_id: ID): address {
+    derive_address(parent_id, RoyaltyPoolKey<Currency>(issuance_id))
 }
 
 /// Read-only verification that the pool was derived from the given parent ID.
-public fun assert_derived_from<Share, Currency>(
-    self: &RoyaltyPool<Share, Currency>,
+public fun issuance_id<Currency>(self: &RoyaltyPool<Currency>): ID { self.issuance_id }
+
+public fun assert_derived_from<Currency>(
+    self: &RoyaltyPool<Currency>,
     parent_id: ID,
 ) {
     assert!(
-        self.id.to_address() == derive_address(parent_id, RoyaltyPoolKey<Share, Currency>()),
+        self.id.to_address() == derive_address(parent_id, RoyaltyPoolKey<Currency>(self.issuance_id)),
         EPoolNotDerivedFromParent,
     );
 }
@@ -593,8 +503,8 @@ public fun assert_derived_from<Share, Currency>(
 /// Apply one positive deposit to a nonempty pool without selecting an event
 /// schema. Public `deposit` and accumulator `settle` each emit their own
 /// mutually exclusive canonical receipt after this shared accounting path.
-fun deposit_balance<Share, Currency>(
-    self: &mut RoyaltyPool<Share, Currency>,
+fun deposit_balance<Currency>(
+    self: &mut RoyaltyPool<Currency>,
     balance: Balance<Currency>,
 ) {
     assert!(self.staked_shares > 0, ENoStakedShares);
@@ -625,12 +535,13 @@ fun calculate_reward(staked_amount: u64, debt: u256, index: u256): u64 {
 // module-private and carry no other public reader.
 
 #[test_only]
-public fun created_event_fields<Share, Currency>(
-    event: &RoyaltyPoolCreatedEvent<Share, Currency>,
-): (address, address, u128, u64, u64, u256, u128, u128) {
+public fun created_event_fields<Currency>(
+    event: &RoyaltyPoolCreatedEvent<Currency>,
+): (address, address, address, u128, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
         event.parent_id,
+        event.issuance_id,
         event.precision,
         event.pool_balance_after,
         event.staked_shares_after,
@@ -641,8 +552,8 @@ public fun created_event_fields<Share, Currency>(
 }
 
 #[test_only]
-public fun deposited_event_fields<Share, Currency>(
-    event: &RoyaltyDepositedEvent<Share, Currency>,
+public fun deposited_event_fields<Currency>(
+    event: &RoyaltyDepositedEvent<Currency>,
 ): (address, u64, u256, u128, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
@@ -658,8 +569,8 @@ public fun deposited_event_fields<Share, Currency>(
 }
 
 #[test_only]
-public fun funds_settled_event_fields<Share, Currency>(
-    event: &RoyaltyPoolFundsSettledEvent<Share, Currency>,
+public fun funds_settled_event_fields<Currency>(
+    event: &RoyaltyPoolFundsSettledEvent<Currency>,
 ): (address, address, address, u64, u256, u128, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
@@ -677,8 +588,8 @@ public fun funds_settled_event_fields<Share, Currency>(
 }
 
 #[test_only]
-public fun coins_recovered_event_fields<Share, Currency>(
-    event: &RoyaltyPoolCoinsRecoveredEvent<Share, Currency>,
+public fun coins_recovered_event_fields<Currency>(
+    event: &RoyaltyPoolCoinsRecoveredEvent<Currency>,
 ): (address, u64, address, u64, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
@@ -694,8 +605,8 @@ public fun coins_recovered_event_fields<Share, Currency>(
 }
 
 #[test_only]
-public fun stake_registered_event_fields<Share, Currency>(
-    event: &StakeRegisteredEvent<Share, Currency>,
+public fun stake_registered_event_fields<Currency>(
+    event: &StakeRegisteredEvent<Currency>,
 ): (address, address, u64, u256, u64, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
@@ -712,8 +623,8 @@ public fun stake_registered_event_fields<Share, Currency>(
 }
 
 #[test_only]
-public fun stake_unregistered_event_fields<Share, Currency>(
-    event: &StakeUnregisteredEvent<Share, Currency>,
+public fun stake_unregistered_event_fields<Currency>(
+    event: &StakeUnregisteredEvent<Currency>,
 ): (address, address, u64, u256, u256, u64, u64, u64, u256, u128, u128) {
     (
         event.pool_id,
@@ -731,8 +642,8 @@ public fun stake_unregistered_event_fields<Share, Currency>(
 }
 
 #[test_only]
-public fun royalty_claimed_event_fields<Share, Currency>(
-    event: &RoyaltyClaimedEvent<Share, Currency>,
+public fun royalty_claimed_event_fields<Currency>(
+    event: &RoyaltyClaimedEvent<Currency>,
 ): (address, address, u64, u64, u256, u256, u256, u64, u64, u64, u256, u128, u128) {
     (
         event.pool_id,

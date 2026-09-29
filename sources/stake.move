@@ -1,27 +1,15 @@
 // Copyright (c) Miso Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-/// A position holding share tokens registered against a `RoyaltyPool`.
+/// A position holding native shares registered against royalty pools.
 ///
-/// Stakes are owned objects with an immutable balance — to increase a holder's
-/// total staked amount, mint additional Stake objects rather than modify an
-/// existing one. This mirrors Sui's native staking model.
-///
-/// Each stake tracks the royalty pools it is currently registered with via an
-/// inline `VecMap<TypeName, Registration>`, keyed by the pool's `Currency`
-/// `TypeName`. The stake cannot be destroyed while any registrations remain.
-/// Pool registrations are mutated by `royalty_pool::pool` through the
-/// package-private accessors below.
-///
-/// Custody warning: `pool::claim_rewards` pays accrued rewards to the
-/// *caller*, and `Stake` is `key + store` — a bare shared stake (or one
-/// wrapped in a shared object that hands out `&mut`) is drainable by anyone.
-/// Stakes must stay address-owned, or wrapped by a contract that pins the
-/// reward route (e.g. `routed_stake`); the pool cannot enforce this itself.
+/// A stake holds one immutable Share value and can register in one pool per
+/// payout currency. It cannot be destroyed while registrations remain.
+/// Custodians must control who may mutate a stake and claim its rewards.
 module royalty_pool::stake;
 
 use std::type_name::TypeName;
-use sui::balance::Balance;
+use share::share::{Self, Share};
 use sui::event::emit;
 use sui::vec_map::{Self, VecMap};
 
@@ -32,10 +20,10 @@ const EPoolsRegistered: u64 = 1;
 
 // === Structs ===
 
-public struct Stake<phantom Share> has key, store {
+public struct Stake has key, store {
     id: UID,
     /// The staked balance. Immutable after creation.
-    balance: Balance<Share>,
+    balance: Share,
     /// Active royalty-pool registrations, keyed by `Currency` `TypeName`.
     /// Must be empty to destroy.
     registrations: VecMap<TypeName, Registration>,
@@ -55,14 +43,14 @@ public struct Registration has copy, drop, store {
 
 // === Events ===
 
-public struct StakeCreatedEvent<phantom Share> has copy, drop {
+public struct StakeCreatedEvent has copy, drop {
     stake_id: address,
     transaction_sender: address,
     amount: u64,
     registration_count_after: u64,
 }
 
-public struct StakeDestroyedEvent<phantom Share> has copy, drop {
+public struct StakeDestroyedEvent has copy, drop {
     stake_id: address,
     amount: u64,
     registration_count_before: u64,
@@ -70,19 +58,19 @@ public struct StakeDestroyedEvent<phantom Share> has copy, drop {
 
 // === Public Functions ===
 
-/// Create a new stake with the given balance.
+/// Create a new stake with the given shares.
 ///
-/// Aborts if `balance` is zero.
-public fun new<Share>(balance: Balance<Share>, ctx: &mut TxContext): Stake<Share> {
+/// Aborts if `shares` are zero.
+public fun new(balance: Share, ctx: &mut TxContext): Stake {
     assert!(balance.value() > 0, EZeroBalance);
 
-    let stake = Stake<Share> {
+    let stake = Stake {
         id: object::new(ctx),
         balance,
         registrations: vec_map::empty(),
     };
 
-    emit(StakeCreatedEvent<Share> {
+    emit(StakeCreatedEvent {
         stake_id: object::id(&stake).to_address(),
         transaction_sender: tx_context::sender(ctx),
         amount: stake.value(),
@@ -95,7 +83,7 @@ public fun new<Share>(balance: Balance<Share>, ctx: &mut TxContext): Stake<Share
 /// Destroy a stake and reclaim its balance.
 ///
 /// Aborts if the stake is still registered with any royalty pools.
-public fun destroy<Share>(stake: Stake<Share>): Balance<Share> {
+public fun destroy(stake: Stake): Share {
     let Stake { id, balance, registrations } = stake;
 
     assert!(registrations.is_empty(), EPoolsRegistered);
@@ -106,7 +94,7 @@ public fun destroy<Share>(stake: Stake<Share>): Balance<Share> {
 
     id.delete();
 
-    emit(StakeDestroyedEvent<Share> {
+    emit(StakeDestroyedEvent {
         stake_id,
         amount,
         registration_count_before,
@@ -117,24 +105,26 @@ public fun destroy<Share>(stake: Stake<Share>): Balance<Share> {
 
 // === View Functions ===
 
-public fun balance<Share>(self: &Stake<Share>): &Balance<Share> {
+public fun balance(self: &Stake): &Share {
     &self.balance
 }
 
-public fun value<Share>(self: &Stake<Share>): u64 {
+public fun issuance_id(self: &Stake): ID { self.balance.issuance_id() }
+
+public fun value(self: &Stake): u64 {
     self.balance.value()
 }
 
 /// Number of royalty pools this stake is currently registered with.
-public fun registration_count<Share>(self: &Stake<Share>): u64 {
+public fun registration_count(self: &Stake): u64 {
     self.registrations.length()
 }
 
-public fun has_registration<Share>(self: &Stake<Share>, currency: &TypeName): bool {
+public fun has_registration(self: &Stake, currency: &TypeName): bool {
     self.registrations.contains(currency)
 }
 
-public fun get_registration<Share>(self: &Stake<Share>, currency: &TypeName): &Registration {
+public fun get_registration(self: &Stake, currency: &TypeName): &Registration {
     self.registrations.get(currency)
 }
 
@@ -160,8 +150,8 @@ public(package) fun new_registration(pool_id: ID, debt: u256): Registration {
 /// Insert a registration for `currency`. The pool module is expected to check
 /// `has_registration` first; this function will abort on duplicate insert via
 /// `VecMap::insert`.
-public(package) fun add_registration<Share>(
-    self: &mut Stake<Share>,
+public(package) fun add_registration(
+    self: &mut Stake,
     currency: TypeName,
     registration: Registration,
 ) {
@@ -169,8 +159,8 @@ public(package) fun add_registration<Share>(
 }
 
 /// Remove and return the registration for `currency`. Aborts if absent.
-public(package) fun remove_registration<Share>(
-    self: &mut Stake<Share>,
+public(package) fun remove_registration(
+    self: &mut Stake,
     currency: &TypeName,
 ): Registration {
     let (_, registration) = self.registrations.remove(currency);
@@ -178,8 +168,8 @@ public(package) fun remove_registration<Share>(
 }
 
 /// Mutable access to a registration. Aborts if absent.
-public(package) fun registration_mut<Share>(
-    self: &mut Stake<Share>,
+public(package) fun registration_mut(
+    self: &mut Stake,
     currency: &TypeName,
 ): &mut Registration {
     self.registrations.get_mut(currency)
@@ -195,15 +185,15 @@ public(package) fun add_debt(r: &mut Registration, amount: u256) {
 // module-private and carry no other public reader.
 
 #[test_only]
-public fun created_event_fields<Share>(
-    event: &StakeCreatedEvent<Share>,
+public fun created_event_fields(
+    event: &StakeCreatedEvent,
 ): (address, address, u64, u64) {
     (event.stake_id, event.transaction_sender, event.amount, event.registration_count_after)
 }
 
 #[test_only]
-public fun destroyed_event_fields<Share>(
-    event: &StakeDestroyedEvent<Share>,
+public fun destroyed_event_fields(
+    event: &StakeDestroyedEvent,
 ): (address, u64, u64) {
     (event.stake_id, event.amount, event.registration_count_before)
 }

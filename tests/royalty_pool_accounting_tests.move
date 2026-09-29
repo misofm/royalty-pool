@@ -20,7 +20,9 @@ module royalty_pool::royalty_pool_accounting_tests;
 
 use royalty_pool::pool::{Self, RoyaltyPool};
 use royalty_pool::stake::{Self, Stake};
+use share::share;
 use std::type_name;
+use std::u64;
 use std::unit_test::{assert_eq, destroy};
 use sui::balance;
 use sui::test_scenario::{Self, Scenario};
@@ -31,12 +33,11 @@ const SUPPLY: u64 = 100_000_000_000_000; // verified share fixed supply
 const OPS: u64 = 250;
 const MAX_LIVE: u64 = 12;
 
-public struct TEST_SHARE() has drop;
 public struct TEST_CURRENCY() has drop;
 
 public struct Model {
     pool_id: ID,
-    stakes: vector<Stake<TEST_SHARE>>,
+    stakes: vector<Stake>,
     idx_reg: vector<u256>,
     paid: vector<u64>,
     forfeited: u256,
@@ -44,11 +45,11 @@ public struct Model {
     registered: u64,
 }
 
-fun debt_of(s: &Stake<TEST_SHARE>): u256 {
+fun debt_of(s: &Stake): u256 {
     stake::registration_debt(s.get_registration(&type_name::with_defining_ids<TEST_CURRENCY>()))
 }
 
-fun check(m: &Model, pool: &RoyaltyPool<TEST_SHARE, TEST_CURRENCY>) {
+fun check(m: &Model, pool: &RoyaltyPool<TEST_CURRENCY>) {
     let idx = pool.cumulative_reward_per_share();
     let mut owed: u256 = 0;
     let mut i = 0u64;
@@ -68,7 +69,7 @@ fun check(m: &Model, pool: &RoyaltyPool<TEST_SHARE, TEST_CURRENCY>) {
 
 fun op_deposit(sc: &mut Scenario, m: &mut Model, v: u64) {
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(m.pool_id);
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_CURRENCY>>(m.pool_id);
     pool.deposit(balance::create_for_testing<TEST_CURRENCY>(v));
     m.staked_at_fold = pool.staked_shares();
     check(m, &pool);
@@ -77,8 +78,8 @@ fun op_deposit(sc: &mut Scenario, m: &mut Model, v: u64) {
 
 fun op_register(sc: &mut Scenario, m: &mut Model, amount: u64) {
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(m.pool_id);
-    let mut s = stake::new(balance::create_for_testing<TEST_SHARE>(amount), sc.ctx());
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_CURRENCY>>(m.pool_id);
+    let mut s = stake::new(share::create_for_testing_from_id(pool.issuance_id(), amount), sc.ctx());
     let idx = pool.cumulative_reward_per_share();
     pool.register_stake(&mut s);
     assert_eq!(pool.pending_rewards(&s), 0);
@@ -90,7 +91,7 @@ fun op_register(sc: &mut Scenario, m: &mut Model, amount: u64) {
     test_scenario::return_shared(pool);
 }
 
-fun claim_in(pool: &mut RoyaltyPool<TEST_SHARE, TEST_CURRENCY>, m: &mut Model, i: u64): u64 {
+fun claim_in(pool: &mut RoyaltyPool<TEST_CURRENCY>, m: &mut Model, i: u64): u64 {
     let expected = pool.pending_rewards(&m.stakes[i]);
     let reward = pool.claim_rewards(&mut m.stakes[i]);
     let got = reward.value();
@@ -103,7 +104,7 @@ fun claim_in(pool: &mut RoyaltyPool<TEST_SHARE, TEST_CURRENCY>, m: &mut Model, i
 
 fun op_claim(sc: &mut Scenario, m: &mut Model, i: u64) {
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(m.pool_id);
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_CURRENCY>>(m.pool_id);
     claim_in(&mut pool, m, i);
     check(m, &pool);
     test_scenario::return_shared(pool);
@@ -111,7 +112,7 @@ fun op_claim(sc: &mut Scenario, m: &mut Model, i: u64) {
 
 fun op_unregister(sc: &mut Scenario, m: &mut Model, i: u64) {
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(m.pool_id);
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_CURRENCY>>(m.pool_id);
     if (pool.pending_rewards(&m.stakes[i]) > 0) { claim_in(&mut pool, m, i); };
     let mut s = m.stakes.swap_remove(i);
     let idx_reg = m.idx_reg.swap_remove(i);
@@ -124,7 +125,7 @@ fun op_unregister(sc: &mut Scenario, m: &mut Model, i: u64) {
     pool.unregister_stake(&mut s);
     m.forfeited = m.forfeited + residue;
     m.registered = m.registered - s.value();
-    balance::destroy_for_testing(stake::destroy(s));
+    destroy(stake::destroy(s));
     check(m, &pool);
     test_scenario::return_shared(pool);
 }
@@ -136,7 +137,7 @@ fun rnd(s: &mut u64): u64 {
 fun fuzz(seed: u64) {
     let mut sc = test_scenario::begin(ALICE);
     let mut parent = object::new(sc.ctx());
-    let pool = pool::new_for_testing<TEST_SHARE, TEST_CURRENCY>(&mut parent);
+    let pool = new_pool<TEST_CURRENCY>(&mut parent, sc.ctx());
     let pool_id = object::id(&pool);
     pool.share();
     destroy(parent);
@@ -185,7 +186,7 @@ fun fuzz(seed: u64) {
     };
     // Drained pool holds only forfeited dust + carry.
     sc.next_tx(ALICE);
-    let pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(pool_id);
+    let pool = sc.take_shared_by_id<RoyaltyPool<TEST_CURRENCY>>(pool_id);
     assert_eq!((pool.balance().value() as u256) * P, (pool.carry() as u256) + m.forfeited);
     test_scenario::return_shared(pool);
     let Model { pool_id: _, stakes, idx_reg: _, paid: _, forfeited: _, staked_at_fold: _, registered: _ } = m;
@@ -199,9 +200,17 @@ fun fuzz(seed: u64) {
 
 // === Targeted scenarios ===
 
-fun setup<Share, Currency>(sc: &mut Scenario): ID {
+fun new_pool<Currency>(parent: &mut UID, ctx: &mut TxContext): RoyaltyPool<Currency> {
+    let mut registry = share::registry_for_testing(ctx);
+    let (issuance, supply) = share::initialize_for_testing(&mut registry, parent);
+    let pool = pool::new<Currency>(parent, &issuance);
+    destroy(supply); destroy(issuance); destroy(registry);
+    pool
+}
+
+fun setup<Currency>(sc: &mut Scenario): ID {
     let mut parent = object::new(sc.ctx());
-    let pool = pool::new_for_testing<Share, Currency>(&mut parent);
+    let pool = new_pool<Currency>(&mut parent, sc.ctx());
     let id = object::id(&pool);
     pool.share();
     destroy(parent);
@@ -213,13 +222,13 @@ fun setup<Share, Currency>(sc: &mut Scenario): ID {
 /// of its entitlement — nothing rounds against it at registration.
 fun late_small_registrant_gets_exact_floor() {
     let mut sc = test_scenario::begin(ALICE);
-    let id = setup<TEST_SHARE, TEST_CURRENCY>(&mut sc);
+    let id = setup<TEST_CURRENCY>(&mut sc);
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(id);
-    let mut b = stake::new(balance::create_for_testing<TEST_SHARE>(10), sc.ctx());
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_CURRENCY>>(id);
+    let mut b = stake::new(share::create_for_testing_from_id(pool.issuance_id(), 10), sc.ctx());
     pool.register_stake(&mut b);
     pool.deposit(balance::create_for_testing<TEST_CURRENCY>(1));   // index = 1e17
-    let mut a = stake::new(balance::create_for_testing<TEST_SHARE>(1), sc.ctx());
+    let mut a = stake::new(share::create_for_testing_from_id(pool.issuance_id(), 1), sc.ctx());
     pool.register_stake(&mut a);                                     // owed 0 so far
     pool.deposit(balance::create_for_testing<TEST_CURRENCY>(20));  // S = 11 → a owed 1.818…
     assert_eq!(pool.pending_rewards(&a), 1);
@@ -236,29 +245,27 @@ fun late_small_registrant_gets_exact_floor() {
     sc.end();
 }
 
+/// Native share supply is below PRECISION. A near-full-supply stake still
+/// carries the division remainder until a subsequent deposit pays a unit.
 #[test]
-/// A share supply larger than PRECISION cannot lock deposits: they gather in
-/// `carry` until they fold into a whole index unit.
-fun carry_folds_when_staked_exceeds_precision() {
+fun carry_accumulates_with_bounded_native_share_supply() {
     let mut sc = test_scenario::begin(ALICE);
-    let id = setup<TEST_SHARE, TEST_CURRENCY>(&mut sc);
+    let id = setup<TEST_CURRENCY>(&mut sc);
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_SHARE, TEST_CURRENCY>>(id);
-    let mut s = stake::new(balance::create_for_testing<TEST_SHARE>(std::u64::max_value!()), sc.ctx());
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<TEST_CURRENCY>>(id);
+    let mut s = stake::new(share::create_for_testing_from_id(pool.issuance_id(), SUPPLY - 1), sc.ctx());
     pool.register_stake(&mut s);
-    let mut i = 0u64;
-    while (i < 18) {
-        pool.deposit(balance::create_for_testing<TEST_CURRENCY>(1));
-        assert_eq!(pool.cumulative_reward_per_share(), 0);
-        i = i + 1;
-    };
-    pool.deposit(balance::create_for_testing<TEST_CURRENCY>(1));     // 19e18 > u64::MAX
-    assert_eq!(pool.cumulative_reward_per_share(), 1);
-    assert_eq!(pool.pending_rewards(&s), 18);
-    let r = pool.claim_rewards(&mut s);
-    assert_eq!(r.value(), 18);
+    pool.deposit(balance::create_for_testing<TEST_CURRENCY>(1));
+    assert_eq!(pool.cumulative_reward_per_share(), 10_000);
+    assert_eq!(pool.carry(), 10_000);
+    assert_eq!(pool.pending_rewards(&s), 0);
+    pool.deposit(balance::create_for_testing<TEST_CURRENCY>(1));
+    assert_eq!(pool.pending_rewards(&s), 1);
+    let reward = pool.claim_rewards(&mut s);
+    assert_eq!(reward.value(), 1);
+    pool.unregister_stake(&mut s);
     test_scenario::return_shared(pool);
-    destroy(r); destroy(s);
+    destroy(reward); destroy(stake::destroy(s));
     sc.end();
 }
 
@@ -268,14 +275,13 @@ fun carry_folds_when_staked_exceeds_precision() {
 /// Under exact accounting every claim is ⌊shares · Δ / P⌋ and the pool stays
 /// solvent — the dust stake's exit is always reachable.
 fun whale_claim_cycles_stay_solvent() {
-    // Distinct primitive phantom tags bound event/type-name gas in this long
-    // test. All 1,000 accounting cycles and assertions remain unchanged.
+    // Keep all 1,000 accounting cycles with the native share supply.
     let mut sc = test_scenario::begin(ALICE);
-    let id = setup<u8, u64>(&mut sc);
+    let id = setup<u64>(&mut sc);
     sc.next_tx(ALICE);
-    let mut whale = stake::new(balance::create_for_testing<u8>(SUPPLY - 99_999_000), sc.ctx());
-    let mut dust = stake::new(balance::create_for_testing<u8>(99_999_000), sc.ctx());
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<u8, u64>>(id);
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<u64>>(id);
+    let mut whale = stake::new(share::create_for_testing_from_id(pool.issuance_id(), SUPPLY - 99_999_000), sc.ctx());
+    let mut dust = stake::new(share::create_for_testing_from_id(pool.issuance_id(), 99_999_000), sc.ctx());
     pool.register_stake(&mut whale);
     pool.register_stake(&mut dust);
     test_scenario::return_shared(pool);
@@ -284,7 +290,7 @@ fun whale_claim_cycles_stay_solvent() {
     let mut tx = 0u64;
     while (tx < 10) {
         sc.next_tx(ALICE);
-        let mut pool = sc.take_shared_by_id<RoyaltyPool<u8, u64>>(id);
+        let mut pool = sc.take_shared_by_id<RoyaltyPool<u64>>(id);
         let mut i = 0u64;
         while (i < 100) {                     // 200 events per tx
             pool.deposit(balance::create_for_testing<u64>(1));
@@ -301,7 +307,7 @@ fun whale_claim_cycles_stay_solvent() {
         tx = tx + 1;
     };
     sc.next_tx(ALICE);
-    let mut pool = sc.take_shared_by_id<RoyaltyPool<u8, u64>>(id);
+    let mut pool = sc.take_shared_by_id<RoyaltyPool<u64>>(id);
     destroy(pool.claim_rewards(&mut dust));
     pool.unregister_stake(&mut dust);
     destroy(pool.claim_rewards(&mut whale));

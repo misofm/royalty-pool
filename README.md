@@ -1,8 +1,11 @@
 # `royalty_pool`
 
-> Accumulator-based royalty distribution: holders stake share tokens, callers deposit revenue, and every deposit is split pro-rata with O(1) work per deposit and per claim.
+> Accumulator-based royalty distribution: holders stake native Share values, callers deposit revenue, and every deposit is split pro-rata with O(1) work per deposit and per claim.
 
-**Layer:** `lib`. A `RoyaltyPool<Share, Currency>` is a derived object of any UID-bearing parent. Production construction requires a `coin_registry::Currency<Share>` that passes `share::share::is_share`; payout `Currency` remains arbitrary.
+A `RoyaltyPool<Currency>` distributes payout balances to holders of one native
+[unconfirmedlabs/share](https://github.com/unconfirmedlabs/share) issuance.
+Its parent can be any UID-bearing subject; it has no musicos dependency.
+`Stake` holds a native `Share`, with no share-coin type parameter.
 
 ## How it works
 
@@ -14,15 +17,28 @@ The fixed supply does not by itself bound lifetime deposits. The existing `cumul
 
 Because `10^18 / 10^14 = 10,000` exactly, every positive deposit of `v` advances the index by at least `v * 10,000`. A continuously registered holder with `s` shares therefore receives at least `floor(s * total_deposits_during_registration / 10^14)` across claims and pending rewards. This is the fixed-total-supply minimum, not exact historical attribution to each changing registered group. Repeated membership changes can accumulate carry differences over time; the `10^-4` bound applies to the outstanding remainder, not lifetime aggregate differences.
 
-## Verified construction
+## Construction and identity
 
-`pool::new<Share, Currency>(parent, share_currency)` admits a pool only when `share_currency` proves that `Share` has the required type shape, immutable metadata, six decimals, no regulation or freeze authority, and the fixed 100,000,000-token supply. An invalid or incompletely initialized currency aborts with `EInvalidShareCurrency`. The unchecked constructor used by generic arithmetic tests is marked `#[test_only]` and is absent from production bytecode.
+`pool::new<Currency>(parent, issuance)` requires mutable UID authorization for
+`issuance.subject_id()`. The pool records the issuance ID and derives its address
+from `(parent, issuance_id, payout Currency)`. `pool::derived_address<Currency>`
+takes both parent and issuance IDs. Creation returns an unshared pool; callers
+register stakes and call `pool::share` when ready.
+
+`stake::new(shares, ctx)` consumes a positive native Share. Registration, pending
+rewards, claiming, and unregistration check the stake's issuance against the pool.
+`stake::destroy` returns the native Share after all registrations are removed.
+The wrapper never exposes mutable access to its principal while registered.
+Currency initialization, decimals, metadata, and treasury checks are no longer
+part of pool construction: native issuance identity and supply conservation
+replace the share-coin admission policy. Payout Currency remains a type parameter.
 
 ## Honest addresses
 
-The derivation key encodes both type parameters, so a pool's address is determined by `(parent, Share, Currency)` — the same parameters that produce the object. The pool at a canonical address is therefore necessarily of the matching type, and (being `key`-only, with `share` as its only consumer) necessarily shared. A pool created with a foreign `Share` claims a different, unpaid address: it can neither impersonate nor block the real one.
-
-That property is what lets payers deliver to a derived address before the pool exists — funds wait at an address only the correctly-typed, shared pool can ever claim, and folding them in is permissionless.
+Each issuance and payout currency has its own derived pool address under the
+issuance subject. A foreign issuance cannot pass construction for that subject,
+and foreign native shares cannot register in its pool. Funds can be sent to the
+derived pool address before construction and settled after holders register.
 
 ## Recovery paths
 
@@ -52,13 +68,13 @@ on localnet or a live network.
 
 ## Event schemas
 
-Pool events are phantom-typed as `Name<Share, Currency>`, use `address` for
+Pool events are phantom-typed as `Name<Currency>`, use `address` for
 object identities, and report the post-state suffix
 `(pool_balance_after: u64, staked_shares_after: u64,
 cumulative_reward_per_share_after: u256, carry_after: u128,
 cumulative_deposits_after: u128)`. The event-specific fields are:
 
-- `RoyaltyPoolCreatedEvent`: `pool_id`, `parent_id`, `precision`.
+- `RoyaltyPoolCreatedEvent`: `pool_id`, `parent_id`, `issuance_id`, `precision`.
 - `RoyaltyDepositedEvent`: `pool_id`, `value`,
   `cumulative_reward_per_share_before`, `carry_before`.
 - `RoyaltyPoolFundsSettledEvent`: `pool_id`, `source_address`,
@@ -79,7 +95,7 @@ cumulative_deposits_after: u128)`. The event-specific fields are:
   claims only; zero reward claims still advance debt and return a zero
   balance silently).
 
-Stake lifecycle events are phantom-typed only by `Share`:
+Stake lifecycle events have no phantom type parameters:
 `StakeCreatedEvent` includes `stake_id`, `transaction_sender`, `amount`, and
 `registration_count_after`; `StakeDestroyedEvent` includes `stake_id`,
 `amount`, and `registration_count_before`. Read-only views emit nothing.
