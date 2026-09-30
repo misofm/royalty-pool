@@ -1,5 +1,11 @@
 # Security Audit — `royalty_pool`
 
+> **Historical.** This audit covers the 2026-08-23 coin-based generation, which
+> assumed a fixed `miso_share` supply of 10¹³. The current source uses native
+> parent-derived `share` issuances with configurable supply, and `pool::new`
+> rejects any issuance above 10¹⁴ base units, the bound the README's precision
+> and carry claims are stated for. Re-audit before publishing.
+
 **Revision:** working tree (source snapshot — no `.git` in repo) ·
 **Date:** 2026-08-23 · **Toolchain:** sui 1.77.2-51d177ad7d65
 
