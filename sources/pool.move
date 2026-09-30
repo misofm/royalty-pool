@@ -1,11 +1,11 @@
 // Copyright (c) Miso Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-/// Accumulator-based royalty distribution for native, subject-scoped shares.
+/// Accumulator-based royalty distribution for native, parent-scoped shares.
 ///
-/// A pool is derived from a subject UID, its immutable Share issuance ID,
-/// and a payout currency. Construction verifies the issuance belongs to the
-/// subject. Stake registration verifies the stake holds that exact issuance.
+/// A pool is derived from its issuance's parent UID, the immutable issuance ID,
+/// and a payout currency. Construction verifies the issuance is derived from
+/// that parent and that its supply is within the audited bound. Stake registration verifies the stake holds that exact issuance.
 /// Deposits accrue to registered units through a scaled reward index; carry
 /// retains deposit rounding and per-stake debt retains claim rounding.
 /// Funds at the pool address can be settled after at least one stake registers.
@@ -13,7 +13,7 @@ module royalty_pool::pool;
 
 use hikida::hikida;
 use royalty_pool::stake::{Self, Stake};
-use share::share::{Issuance};
+use share::share::{Self, Issuance};
 use std::type_name;
 use sui::accumulator::AccumulatorRoot;
 use sui::balance::{Self, Balance};
@@ -31,13 +31,17 @@ const ENotRegistered: u64 = 3;
 const EPoolIdMismatch: u64 = 4;
 const ELastClaimIndexMismatch: u64 = 5;
 const EInvalidValue: u64 = 6;
-/// The supplied issuance belongs to another subject.
-const EIssuanceSubjectMismatch: u64 = 7;
+/// The supplied issuance is not derived from this parent.
+const EIssuanceParentMismatch: u64 = 7;
 const EStakeIssuanceMismatch: u64 = 8;
+/// The issuance's supply exceeds `MAX_SUPPLY`.
+const ESupplyTooLarge: u64 = 9;
 
 // === Constants ===
 
 const PRECISION: u128 = 1_000_000_000_000_000_000;
+/// Largest issuance supply the accounting bounds are proven for.
+const MAX_SUPPLY: u64 = 100_000_000_000_000;
 
 // === Structs ===
 
@@ -57,7 +61,7 @@ public struct RoyaltyPool<phantom Currency> has key {
 }
 
 /// Key encodes the issuance ID and payout currency for deterministic
-/// derivation from the subject UID.
+/// derivation from the issuance's parent UID.
 public struct RoyaltyPoolKey<phantom Currency>(ID) has copy, drop, store;
 
 // === Events ===
@@ -159,11 +163,12 @@ public struct RoyaltyClaimedEvent<phantom Currency> has copy, drop {
 
 // === Public Functions ===
 
-/// Construct a pool for the subject of an immutable native-share issuance.
-/// The parent UID is obtained through the subject's cap-gated accessor.
+/// Construct a pool for a native-share issuance, under the issuance's parent.
+/// The parent UID is obtained through the parent's cap-gated accessor.
 public fun new<Currency>(parent: &mut UID, issuance: &Issuance): RoyaltyPool<Currency> {
-    assert!(parent.to_inner() == issuance.subject_id(), EIssuanceSubjectMismatch);
     let parent_id = parent.to_inner();
+    assert!(share::derive_address(parent_id) == object::id_address(issuance), EIssuanceParentMismatch);
+    assert!(issuance.supply() <= MAX_SUPPLY, ESupplyTooLarge);
     let issuance_id = object::id(issuance);
     let pool = RoyaltyPool<Currency> {
         id: claim(parent, RoyaltyPoolKey<Currency>(issuance_id)),

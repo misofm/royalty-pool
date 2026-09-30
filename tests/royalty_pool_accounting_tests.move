@@ -137,7 +137,7 @@ fun rnd(s: &mut u64): u64 {
 fun fuzz(seed: u64) {
     let mut sc = test_scenario::begin(ALICE);
     let mut parent = object::new(sc.ctx());
-    let pool = new_pool<TEST_CURRENCY>(&mut parent, sc.ctx());
+    let pool = new_pool<TEST_CURRENCY>(&mut parent);
     let pool_id = object::id(&pool);
     pool.share();
     destroy(parent);
@@ -200,17 +200,16 @@ fun fuzz(seed: u64) {
 
 // === Targeted scenarios ===
 
-fun new_pool<Currency>(parent: &mut UID, ctx: &mut TxContext): RoyaltyPool<Currency> {
-    let mut registry = share::registry_for_testing(ctx);
-    let (issuance, supply) = share::initialize_for_testing(&mut registry, parent);
+fun new_pool<Currency>(parent: &mut UID): RoyaltyPool<Currency> {
+    let (issuance, supply) = share::new(parent, 100_000_000_000_000, 6);
     let pool = pool::new<Currency>(parent, &issuance);
-    destroy(supply); destroy(issuance); destroy(registry);
+    destroy(supply); destroy(issuance);
     pool
 }
 
 fun setup<Currency>(sc: &mut Scenario): ID {
     let mut parent = object::new(sc.ctx());
-    let pool = new_pool<Currency>(&mut parent, sc.ctx());
+    let pool = new_pool<Currency>(&mut parent);
     let id = object::id(&pool);
     pool.share();
     destroy(parent);

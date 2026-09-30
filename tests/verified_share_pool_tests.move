@@ -15,14 +15,13 @@ use sui::test_scenario;
 public struct TEST_PAYOUT() has drop;
 
 #[test]
-fun production_pool_uses_subject_issuance_and_split_shares() {
+fun production_pool_uses_parent_issuance_and_split_shares() {
     let ctx = &mut tx_context::dummy();
     let mut subject = object::new(ctx);
     let subject_id = subject.to_inner();
-    let mut registry = share::registry_for_testing(ctx);
-    let (issuance, mut supply) = share::initialize_for_testing(&mut registry, &mut subject);
+    let (issuance, mut supply) = share::new(&mut subject, 100_000_000_000_000, 6);
     let issuance_id = object::id(&issuance);
-    assert_eq!(supply.value(), share::max_supply!());
+    assert_eq!(supply.value(), 100_000_000_000_000);
 
     let mut pool = pool::new<TEST_PAYOUT>(&mut subject, &issuance);
     assert_eq!(pool.issuance_id(), issuance_id);
@@ -45,19 +44,27 @@ fun production_pool_uses_subject_issuance_and_split_shares() {
     assert_eq!(pool.balance().value(), 0);
     destroy(first_reward); destroy(second_reward);
     destroy(stake::destroy(first)); destroy(stake::destroy(second));
-    destroy(pool); destroy(supply); destroy(issuance); destroy(registry); destroy(subject);
+    destroy(pool); destroy(supply); destroy(issuance); destroy(subject);
 }
 
-#[test, expected_failure(abort_code = pool::EIssuanceSubjectMismatch)]
+#[test, expected_failure(abort_code = pool::EIssuanceParentMismatch)]
 fun production_new_rejects_issuance_for_different_parent() {
     let ctx = &mut tx_context::dummy();
     let mut subject = object::new(ctx);
     let mut wrong_parent = object::new(ctx);
-    let mut registry = share::registry_for_testing(ctx);
-    let (issuance, supply) = share::initialize_for_testing(&mut registry, &mut subject);
+    let (issuance, supply) = share::new(&mut subject, 100_000_000_000_000, 6);
     let pool = pool::new<TEST_PAYOUT>(&mut wrong_parent, &issuance);
-    destroy(pool); destroy(supply); destroy(issuance); destroy(registry);
+    destroy(pool); destroy(supply); destroy(issuance);
     destroy(subject); destroy(wrong_parent);
+}
+
+#[test, expected_failure(abort_code = pool::ESupplyTooLarge)]
+fun production_new_rejects_supply_above_bound() {
+    let ctx = &mut tx_context::dummy();
+    let mut parent = object::new(ctx);
+    let (issuance, supply) = share::new(&mut parent, 100_000_000_000_001, 6);
+    let pool = pool::new<TEST_PAYOUT>(&mut parent, &issuance);
+    destroy(pool); destroy(supply); destroy(issuance); destroy(parent);
 }
 
 public struct Subject has key { id: UID }
@@ -68,18 +75,18 @@ fun published_issuance_supports_pool_and_stake_across_transactions() {
     let mut scenario = test_scenario::begin(admin);
     let mut subject = Subject { id: object::new(scenario.ctx()) };
     let subject_id = object::id(&subject);
-    let mut registry = share::registry_for_testing(scenario.ctx());
-    let mut supply = share::initialize(&mut registry, &mut subject.id);
+    let (issuance, mut supply) = share::new(&mut subject.id, 100_000_000_000_000, 6);
+    issuance.share();
     let mut position = stake::new(supply.split(100), scenario.ctx());
     let stake_id = object::id(&position);
     transfer::public_transfer(position, admin);
     transfer::share_object(subject);
-    destroy(supply); destroy(registry);
+    destroy(supply);
 
     scenario.next_tx(admin);
     let mut subject = scenario.take_shared<Subject>();
     let issuance = scenario.take_shared<share::Issuance>();
-    assert_eq!(issuance.subject_id(), subject_id);
+    assert_eq!(issuance.parent_id(), subject_id);
     let pool = pool::new<TEST_PAYOUT>(&mut subject.id, &issuance);
     let pool_id = object::id(&pool);
     pool.share();

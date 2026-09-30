@@ -4,14 +4,14 @@
 
 A `RoyaltyPool<Currency>` distributes payout balances to holders of one native
 [unconfirmedlabs/share](https://github.com/unconfirmedlabs/share) issuance.
-Its parent can be any UID-bearing subject; it has no musicos dependency.
+Its parent is the issuance's parent, which can be any UID-bearing object; it has no musicos dependency.
 `Stake` holds a native `Share`, with no share-coin type parameter.
 
 ## How it works
 
 The pool keeps a `cumulative_reward_per_share` index. A deposit of `v` across `S` staked shares advances the index by `⌊(v · PRECISION + carry) / S⌋` and keeps the remainder in `carry`, so deposit rounding never loses value; a registration records its debt as `shares · index` at full precision and a claim pays `⌊(shares · index − debt) / PRECISION⌋`, adding `reward · PRECISION` back to the debt. Neither operation iterates over holders, so cost does not grow with the number of stakers.
 
-The accounting is exact: a registration's lifetime payout is precisely `⌊shares · Δindex / PRECISION⌋`, sub-unit credit carries across claims without ever being inflated, and `balance · PRECISION == Σ(shares · index − debt) + carry + forfeited` holds at all times — the pool can never owe more than it holds. With verified share supply capped at `100_000_000_000_000` base units and `PRECISION = 10^18`, the pool-wide deposit carry is strictly less than `10^-4` of one payout base unit. Carry is folded into a later index update against the stake set then registered, so this conservation guarantee does not promise exact attribution of that sub-base-unit residual to the cohort present when it arose. The only other value that stays behind is under one base unit of residue per registration, forfeited at unregister.
+The accounting is exact: a registration's lifetime payout is precisely `⌊shares · Δindex / PRECISION⌋`, sub-unit credit carries across claims without ever being inflated, and `balance · PRECISION == Σ(shares · index − debt) + carry + forfeited` holds at all times — the pool can never owe more than it holds. With issuance supply capped at `100_000_000_000_000` base units (enforced by `pool::new`) and `PRECISION = 10^18`, the pool-wide deposit carry is strictly less than `10^-4` of one payout base unit. Carry is folded into a later index update against the stake set then registered, so this conservation guarantee does not promise exact attribution of that sub-base-unit residual to the cohort present when it arose. The only other value that stays behind is under one base unit of residue per registration, forfeited at unregister.
 
 The fixed supply does not by itself bound lifetime deposits. The existing `cumulative_deposits: u128` counter supplies that limit: before it is reached, the cumulative index needs at most 188 bits and `shares * index` or registration debt needs at most 235 bits. The deposit numerator needs at most 124 bits. Keep `PRECISION = 10^18`, the `u128` deposit intermediate, and `u256` index/debt. A `u128` scaled obligation would overflow on the 19th fully paid `u64::MAX` deposit cycle for a one-share position; the actual lifetime counter permits 18,446,744,073,709,551,617 maximum-sized deposits before the next addition exceeds its range. Overflow aborts atomically.
 
@@ -20,7 +20,9 @@ Because `10^18 / 10^14 = 10,000` exactly, every positive deposit of `v` advances
 ## Construction and identity
 
 `pool::new<Currency>(parent, issuance)` requires mutable UID authorization for
-`issuance.subject_id()`. The pool records the issuance ID and derives its address
+the issuance's parent: it checks `share::derive_address(parent_id)` against the
+issuance's address, and rejects supplies above `100_000_000_000_000` base units,
+the bound the accounting above is proven for. The pool records the issuance ID and derives its address
 from `(parent, issuance_id, payout Currency)`. `pool::derived_address<Currency>`
 takes both parent and issuance IDs. Creation returns an unshared pool; callers
 register stakes and call `pool::share` when ready.
@@ -36,7 +38,7 @@ replace the share-coin admission policy. Payout Currency remains a type paramete
 ## Honest addresses
 
 Each issuance and payout currency has its own derived pool address under the
-issuance subject. A foreign issuance cannot pass construction for that subject,
+issuance's parent. A foreign issuance cannot pass construction for that parent,
 and foreign native shares cannot register in its pool. Funds can be sent to the
 derived pool address before construction and settled after holders register.
 
