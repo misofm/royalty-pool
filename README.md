@@ -1,5 +1,8 @@
 # `royalty_pool`
 
+> **Archived.** This package moved to [`misofm/framework`](https://github.com/misofm/framework/tree/main/royalty_pool),
+> with its history. Depend on it with `git = "https://github.com/misofm/framework.git"` and `subdir = "royalty_pool"`.
+
 > Accumulator-based royalty distribution: holders stake a work's share coin, callers deposit revenue, and every deposit is split pro-rata with O(1) work per deposit and per claim.
 
 A `RoyaltyPool<Share, Currency>` distributes `Currency` payouts to holders of
